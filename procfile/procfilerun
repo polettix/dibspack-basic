@@ -9,10 +9,13 @@ cd "$(dirname "$PROCFILE_SPEC")"
 {
    cat "$(basename "$PROCFILE_SPEC")"
    printf '\n'
-} | IFS= while read type command ; do
+} | while read -r type command ; do
       [ -n "$type" ] || continue
       [ "x${type%${type#?}}" != 'x#' ] || continue
       [ "x$type" = "x$PROCFILE_TYPE:" ] || continue
+      for f in .profile.d/*.sh ; do
+         [ ! -r "$f" ] || . "$f"
+      done
       exec /bin/sh -c "$command"
    done
 
