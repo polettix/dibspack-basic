@@ -1,0 +1,22 @@
+#!/bin/sh
+[ -r "${0}rc" ] && . "${0}rc"
+: ${PROCFILE_SPEC:=/app/Procfile}
+: ${PROCFILE_DEFAULT:=web}
+: ${PROCFILE_TYPE:=$PROCFILE_DEFAULT}
+export PROCFILE_SPEC PROCFILE_TYPE
+
+set -e
+cd "$(dirname "$PROCFILE_SPEC")"
+{
+   cat "$(basename "$PROCFILE_SPEC")"
+   printf '\n'
+} | IFS= while read type command ; do
+      [ -n "$type" ] || continue
+      [ "x${type%${type#?}}" != 'x#' ] || continue
+      [ "x$type" = "x$PROCFILE_TYPE:" ] || continue
+      exec /bin/sh -c "$command"
+   done
+
+printf >&2 'invalid process type %s, not in Procfile %s\n' \
+   "$PROCFILE_TYPE" "$PROCFILE_SPEC"
+exit 1

@@ -1,0 +1,3 @@
+#!/bin/sh
+[ "x${DUMP_ENV-1}" = 'x' -o "x${DUMP_ENV-1}" = 'x0' ] || env
+[ "x${DUMP_SET-1}" = 'x' -o "x${DUMP_SET-1}" = 'x0' ] || set

@@ -1,0 +1,5 @@
+#!/bin/sh
+STEP="$1"
+SRC_DIR="$2"
+ARCH="$($(dirname "$0")/../lib.sh architecture)"
+[ -x "$SRC_DIR/prereqs/$ARCH.$STEP" ]

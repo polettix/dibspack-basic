@@ -1,0 +1,7 @@
+#!/bin/sh
+if [ -n "$DIBSPACK" ] ; then
+   exec "$(dirname "$0")/$DIBSPACK/$(basename "$0")" "$@"
+else
+   . "$0/lib.sh"
+   LOGDIE 'cannot invoke this without setting env variable DIBSPACK'
+fi
