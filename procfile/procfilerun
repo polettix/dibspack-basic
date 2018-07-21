@@ -1,8 +1,7 @@
 #!/bin/sh
 [ -r "${0}rc" ] && . "${0}rc"
 : ${PROCFILE_SPEC:=/app/Procfile}
-: ${PROCFILE_DEFAULT:=web}
-: ${PROCFILE_TYPE:=$PROCFILE_DEFAULT}
+PROCFILE_TYPE=${1:-${PROCFILE_DEFAULT:-web}}
 export PROCFILE_SPEC PROCFILE_TYPE
 
 set -e
