@@ -1,7 +1,6 @@
 #!/bin/sh
 [ -r "${0}rc" ] && . "${0}rc"
-. "$(dirname "$0")/vars"
-export PROCFILE_TYPE=${1:-$PROCFILE_DEFAULT}
+export PROCFILE_TYPE=${1:-${PROCFILE_DEFAULT:-web}}
 
 set -e
 cd "$(dirname "$PROCFILE_SPEC")"
