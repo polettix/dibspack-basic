@@ -11,7 +11,7 @@ while read -r type command ; do
    for f in .profile.d/*.sh ; do
       [ ! -r "$f" ] || . "$f"
    done
-   exec /bin/sh -c "$command"
+   exec /bin/sh -c "exec $command"
 done <<END
 $(cat "$(basename "$PROCFILE_SPEC")")
 END
