@@ -4,18 +4,17 @@ export PROCFILE_TYPE=${1:-${PROCFILE_DEFAULT:-web}}
 
 set -e
 cd "$(dirname "$PROCFILE_SPEC")"
-{
-   cat "$(basename "$PROCFILE_SPEC")"
-   printf '\n'
-} | while read -r type command ; do
-      [ -n "$type" ] || continue
-      [ "x${type%${type#?}}" != 'x#' ] || continue
-      [ "x$type" = "x$PROCFILE_TYPE:" ] || continue
-      for f in .profile.d/*.sh ; do
-         [ ! -r "$f" ] || . "$f"
-      done
-      exec /bin/sh -c "$command"
+while read -r type command ; do
+   [ -n "$type" ] || continue
+   [ "x${type%${type#?}}" != 'x#' ] || continue
+   [ "x$type" = "x$PROCFILE_TYPE:" ] || continue
+   for f in .profile.d/*.sh ; do
+      [ ! -r "$f" ] || . "$f"
    done
+   exec /bin/sh -c "$command"
+done <<END
+$(cat "$(basename "$PROCFILE_SPEC")")
+END
 
 printf >&2 'invalid process type %s, not in Procfile %s\n' \
    "$PROCFILE_TYPE" "$PROCFILE_SPEC"
