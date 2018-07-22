@@ -1,0 +1,5 @@
+#!/bin/sh
+: ${PROCFILE_RUNNER:=/procfilerun}
+: ${PROCFILE_SPEC:=/app/Procfile}
+: ${PROCFILE_DEFAULT:=web}
+export PROCFILE_RUNNER PROCFILE_SPEC PROCFILE_DEFAULT

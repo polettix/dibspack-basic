@@ -1,0 +1,5 @@
+#!/bin/sh
+. "$(dirname "$0")/vars"
+[ -e "$PROCFILE_SPEC" ] || exit 100  # marked as skip
+[ -r "$PROCFILE_SPEC" ] || exit 1    # marked as error
+exit 0

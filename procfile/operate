@@ -1,8 +1,5 @@
 #!/bin/sh
-: ${PROCFILE_RUNNER:=/procfilerun}
-: ${PROCFILE_SPEC:=/app/Procfile}
-: ${PROCFILE_DEFAULT:=web}
-export PROCFILE_RUNNER PROCFILE_SPEC PROCFILE_DEFAULT
+. "$(dirname "$0")/vars"
 cp "$(dirname "$0")/procfilerun" "$PROCFILE_RUNNER"
 chmod +x "$PROCFILE_RUNNER"
 "$(dirname "$0")/../lib.sh" dump_env PROCFILE_SPEC PROCFILE_DEFAULT \
