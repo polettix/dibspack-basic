@@ -1,0 +1,62 @@
+#!/bin/sh
+step_name="$1"
+src_dir="$2"
+cache_dir="$3"
+env_dir="$4"
+
+# everything is an error, every operation is logged
+set -e
+
+md="$(dirname "$0")"
+. "$md/../lib.sh"
+
+# everything is logged from now on...
+[ "x$GIT_DEBUG" = "x1" ] && set -v -x
+
+[ -n "$GIT_URI" ] || LOGDIE "environment variable GIT_URI missing"
+
+origin="${GIT_URI%#*}"
+ref="${GIT_URI#*#}"
+[ "x$ref" = "x$GIT_URI" ] && ref=
+: ${ref:=master}
+INFO "origin: $origin (ref: $ref)"
+
+# ensure_prereqs are installed, most notably git should be there
+arch="$(architecture)"
+[ -x "$md/prereqs/$arch" ] && "$md/prereqs/$arch"
+
+# work in $src_dir from now on
+mkdir -p "$src_dir"
+cd "$src_dir" || LOGDIE "unable to get into $src_dir"
+
+fresh=no
+if [ "x$GIT_RESTART" = "x1" ] ; then
+   cleanup_dir .
+   fresh=yes
+elif [ -d .git ] ; then
+   c_origin="$(git remote get-url origin)"
+   if [ "x$c_origin" = "x$origin" ] ; then
+      git fetch origin
+   else
+      cleanup_dir .
+   fresh=yes
+   fi
+else
+   fresh=yes
+fi
+
+# if we arrived here without a .git directory, it's time to clone
+[ -d .git ] || git clone "$origin" .
+
+# hop on the right ref
+current_ref="$(git branch | sed -n -e '/^\*/s/^..//p')"
+if [ "x$ref" != "x$current_ref" ] ; then
+   git checkout "$ref"
+fi
+
+if [ "x$fresh" = "xno" ] ; then
+   # if ref is a branch there's the possibility of an update
+   if git branch | grep "^..$ref\$" >/dev/null 2>&1 ; then
+      git merge "origin/$ref"
+   fi
+fi

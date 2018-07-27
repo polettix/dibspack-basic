@@ -29,6 +29,8 @@ DEBUG()  { __log 5 'DEBUG' "$*" ; }
 TRACE()  { __log 6 'TRACE' "$*" ; }
 LOGDIE() { FATAL "$*" ;  exit 1 ; }
 
+LOG()  { printf >&2 '%s\n' "$*" ; }
+
 architecture() { sed -n 's/^ID=//p' /etc/os-release ; }
 
 escape_var_value() {
@@ -74,6 +76,42 @@ encode_array_sed() {
       printf %s\\n "$i" | sed "s/'/'\\\\''/g;1s/^/'/;\$s/\$/' \\\\/"
    done
    echo " "
+}
+
+indent() { sed -e 's/^/       /' ; }
+
+cleanup_dir() {
+   (
+      [ -n "$1" ] || LOGDIE "cleanup_dir: MUST receive directory as input"
+      cd "$1"     || LOGDIE "cleanup_dir: cannot chdir into $1"
+      chmod -R +w . || LOGDIE "cleanup_dir: cannot set write bit in $1"
+      find -H . \! -name . -prune -exec rm -rf '{}' \;
+   )
+}
+
+rm_forced() { [ -e "$1" ] && chmod -R +w "$1" ; rm -rf "$1" ; }
+
+copy_to() {
+   dst_root="$1"
+   shift
+
+   for src in "$@" ; do
+      dst="$dst_root/$src"
+      dst_dir="$(dirname "$dst")"
+      [ -d "$dst_dir" ] || mkdir -p "$dst_dir"
+      cp -pP "$src" "$dst"
+   done
+}
+
+restore_permissions_from() {
+   src_root="$1"
+   shift
+
+   for dir in "$@" ; do
+      src="$src_root/$dir"
+      chmod "$(stat -c '%a'    "$src")" "$dir"
+      chown "$(stat -c '%u:%g' "$src")" "$dir"
+   done
 }
 
 if grep ff5ea532388b803964a75cf9ec1b57e338bd -- "$0" >/dev/null 2>&1 ; then

@@ -1,0 +1,6 @@
+#!/bin/sh
+set -e
+src="${DIBSPACK_INSTALL_SRC:-"$2"}"
+dst="${DIBSPACK_INSTALL_DST:-'/app'}"
+"$(dirname "$0")/../lib.sh" rm_forced "$dst"
+cp -pPR "$src" "$dst"

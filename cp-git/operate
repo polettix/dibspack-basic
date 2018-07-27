@@ -1,0 +1,43 @@
+#!/bin/sh
+
+step="$1" src_dir="$2" cache_dir="$3" env_dir="$4"
+md="$(dirname "$0")"
+. "$md/../lib.sh"
+set -e
+
+src="$(readlink -f "${DIBSPACK_CPGIT_SRC:-"$src_dir"}")"
+dst="${DIBSPACK_CPGIT_DST:-"$cache_dir/app"}"
+pivot="${DIBSPACK_CPGIT_PIVOT:-/tmp/cp-git}"
+[ "x$dst" = 'x/' ] && LOGDIE "cannot install in /"
+
+# we will leverage a pivot directory, make sure we start over from a
+# clean situation
+rm_forced "$pivot"
+
+# copy all stuff from the source, get rid of any .git directory and
+# initialize a new one, so that we will use its mechanism for selecting
+# the right files
+cp -pPR "$src" "$pivot"
+cd "$pivot"
+rm_forced .git
+git init >/dev/null 2>&1
+
+# copy all files in the target directory, keeping file permissions. We
+# leverage git capabilities for selecting/excluding files, using
+# .dibsignore instead of the default .gitignore
+LOG 'copying files...'
+rm_forced "$dst"
+mkdir -p "$dst"
+git ls-files -z -o --exclude-per-directory=.dibsignore \
+   | xargs -0 "$md/../lib.sh" copy_to "$dst"
+
+# we don't need the pivot any more at this point
+rm_forced "$pivot"
+
+# now it's time to restore permissions for directories, so it's better to
+# work from inside the destination directory. We get all sub-directories
+# and restore permissions from the corresponding file in source
+LOG 'restoring permissions on directories...'
+cd "$dst"
+find . -depth -print0 -type d \( \! -name . \) \
+   | xargs -0 "$md/../lib.sh" restore_permissions_from "$src"
