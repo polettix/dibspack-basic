@@ -2,6 +2,7 @@
 src_dir="$1"
 cache_dir="$2"
 env_dir="$3"
+git_uri="${4:-"$DIBSPACK_GIT_URI"}"
 
 # everything is an error, every operation is logged
 set -e
@@ -9,14 +10,14 @@ set -e
 md="$(dirname "$0")"
 . "$md/../lib.sh"
 
+[ -n "$git_uri" ] || LOGDIE 'no git URI available'
+
 # everything is logged from now on...
-[ "x$GIT_DEBUG" = "x1" ] && set -v -x
+[ "x$DIBSPACK_GIT_DEBUG" = "x1" ] && set -v -x
 
-[ -n "$GIT_URI" ] || LOGDIE "environment variable GIT_URI missing"
-
-origin="${GIT_URI%#*}"
-ref="${GIT_URI#*#}"
-[ "x$ref" = "x$GIT_URI" ] && ref=
+origin="${git_uri%#*}"
+ref="${git_uri#*#}"
+[ "x$ref" = "x$git_uri" ] && ref=
 : ${ref:=master}
 INFO "origin: $origin (ref: $ref)"
 
@@ -29,18 +30,16 @@ mkdir -p "$src_dir"
 cd "$src_dir" || LOGDIE "unable to get into $src_dir"
 
 fresh=no
-if [ "x$GIT_RESTART" = "x1" ] ; then
-   cleanup_dir .
-   fresh=yes
-elif [ -d .git ] ; then
+if [ "x$DIBSPACK_GIT_REFRESH" = "x1" -a -d .git ] ; then
    c_origin="$(git remote get-url origin)"
    if [ "x$c_origin" = "x$origin" ] ; then
       git fetch origin
    else
       cleanup_dir .
-   fresh=yes
+      fresh=yes
    fi
 else
+   cleanup_dir .
    fresh=yes
 fi
 
