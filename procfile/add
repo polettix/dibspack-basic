@@ -1,0 +1,18 @@
+#!/bin/sh
+set -e
+md="$(dirname "$0")"
+. "$md/../lib.sh"
+
+export PROCFILE_SPEC="${DIBSPACK_PROCFILE_SPEC:-"/app/Procfile"}"
+if is_detect "$4" ; then
+   [ -e "$PROCFILE_SPEC" ] || exit 100  # marked as skip
+   [ -r "$PROCFILE_SPEC" ] || exit 1    # marked as error
+   exit 0
+fi
+
+procfile_runner="${DIBSPACK_PROCFILE_RUNNER:-"/procfilerun"}"
+cp "$md/procfilerun" "$procfile_runner"
+chmod +x "$procfile_runner"
+
+export PROCFILE_DEFAULT="${DIBSPACK_PROCFILE_DEFAULT:-"web"}"
+dump_env PROCFILE_SPEC PROCFILE_DEFAULT >"${procfile_runner}rc"
