@@ -33,7 +33,7 @@ LOG()  { printf >&2 '%s\n' "$*" ; }
 
 architecture() { sed -n 's/^ID=//p' /etc/os-release ; }
 
-is_detect() { [ "${1:-"$DIBSPACK_DETECT"}" = 'xdetect' ] }
+is_detect() { [ "${1:-"$DIBSPACK_DETECT"}" = 'xdetect' ] ; }
 
 escape_var_value() {
    local value=$1
