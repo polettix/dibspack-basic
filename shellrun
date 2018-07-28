@@ -1,0 +1,3 @@
+#!/bin/sh
+shift 3 # get rid of directories
+for command do $command ; done
