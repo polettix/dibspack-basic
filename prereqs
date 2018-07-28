@@ -1,0 +1,19 @@
+#!/bin/sh
+set -e
+. "$(dirname "$0")/lib.sh"
+
+src_dir="$1"
+step="${DIBSPACK_STEP:-"$4"}"
+[ -n "$step" ] || LOGDIE "step parameter is unknown"
+
+arch="$(architecture)"
+program="$src_dir/prereqs/$arch.$step"
+
+# detect?
+if [ "x${DIBSPACK_DETECT:-"$5"}" = 'xdetect' ] ; then
+   [ -x "$program" ] && exit 0
+   exit 100
+fi
+
+# run
+"$program" "$@"
