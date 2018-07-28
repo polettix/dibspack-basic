@@ -3,14 +3,14 @@ set -e
 . "$(dirname "$0")/lib.sh"
 
 src_dir="$1"
-step="${DIBSPACK_STEP:-"$4"}"
+step="${4:-"$DIBSPACK_STEP"}"
 [ -n "$step" ] || LOGDIE "step parameter is unknown"
 
 arch="$(architecture)"
 program="$src_dir/prereqs/$arch.$step"
 
 # detect?
-if [ "x${DIBSPACK_DETECT:-"$5"}" = 'xdetect' ] ; then
+if is_detect "$5" ; then
    [ -x "$program" ] && exit 0
    exit 100
 fi
