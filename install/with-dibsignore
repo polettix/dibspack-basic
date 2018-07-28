@@ -1,63 +1,56 @@
 #!/usr/bin/env perl
 use strict;
 use warnings;
+use Getopt::Long qw< GetOptionsFromArray :config gnu_getopt >;
 use FindBin '$Bin';
 use lib "$Bin/lib";
 use Text::Gitignore 'build_gitignore_matcher';
 use Path::Tiny 'path';
 
-use constant DEBUG    => $ENV{DIBSPACK_INSTALL_DEBUG};
-use constant PRINT    => $ENV{DIBSPACK_INSTALL_PRINT};
-use constant PRESERVE => $ENV{DIBSPACK_INSTALL_PRESERVE};
-
 main(@ARGV);
 exit 0;
 
-sub main {
-   my $step = shift;
-   my ($src_dir, $cache_dir, $env_dir) = map { path($_)->absolute } @_;
-   my $dibsignore = $ENV{DIBSPACK_INSTALL_DIBSIGNORE} || '.dibsignore';
+{
+   my %config;
 
-   my $src_root = resolve_root(
-      $ENV{DIBSPACK_INSTALL_SRC}, $src_dir,
-      src   => $src_dir,
-      cache => $cache_dir,
-   );
-   my $dst_root = resolve_root(
-      $ENV{DIBSPACK_INSTALL_DST}, '/app',
-      src   => $src_dir,
-      cache => $cache_dir,
-   );
+   # these work as "use constant", to access the configuration globally
+   # while still avoiding a fully global configuration variable.
+   sub DEBUG()    { return $config{debug}    }
+   sub PRESERVE() { return $config{preserve} }
+   sub PRINT()    { return $config{print}    }
 
-   # get rid of destination first
-   if (! PRINT) {
-      stubborn_rm_rf($dst_root) if $dst_root->exists && ! PRESERVE;
-      $dst_root->mkpath;
+   sub main {
+      my ($src_dir, $cache_dir, $env_dir, @args) = @_;
+      %config = (
+         debug      => $ENV{DIBSPACK_INSTALL_DEBUG}      || 0,
+         dibsignore => $ENV{DIBSPACK_INSTALL_DIBSIGNORE} || '.dibsignore',
+         dst        => $ENV{DIBSPACK_INSTALL_DST}        || '/app',
+         preserve   => $ENV{DIBSPACK_INSTALL_PRESERVE}   || 0,
+         'print'    => $ENV{DIBSPACK_INSTALL_PRINT}      || 0,
+         src        => $ENV{DIBSPACK_INSTALL_SRC}        || $src_dir,
+      );
+      GetOptionsFromArray(\@args, \%config, qw< debug|D! dibsignore|f=s
+         dst|d=s preserve|p! print|P! src|s=s >);
+
+      my ($dst, $src) = map { path($_)->absolute } @config{qw< dst src >};
+
+      # get rid of destination first
+      if (! PRINT) {
+         stubborn_rm_rf($dst) if $dst->exists && ! PRESERVE;
+         $dst->mkpath;
+      }
+
+      # now do the copy itself
+      traverse(
+         dibsignore => $config{dibsignore},
+         src_root   => $src,
+         dst_root   => $dst,
+         root       => $src,
+      );
+
+      # last, copy permissions for top directory
+      copy_permissions($src, $dst);
    }
-
-   # now do the copy itself
-   traverse(
-      dibsignore => $dibsignore,
-      src_root   => $src_root,
-      dst_root   => $dst_root,
-      root       => $src_root,
-   );
-
-   # last, copy permissions for top directory
-   copy_permissions($src_root, $dst_root);
-}
-
-sub resolve_root {
-   my ($dir, $default, %dir_for) = @_;
-   $dir = $default unless defined($dir) && length($dir);
-   if (substr($dir, 0, 1) eq '+') {
-      $dir = substr $dir, 1;
-   }
-   elsif (my ($base, $subpath) = $dir =~ m{\A \@ ([^:]*) : (.*)}mxs) {
-      die "unrecognised base '$base'" unless exists $dir_for{$base};
-      $dir = path($dir_for{$base})->child($subpath);
-   }
-   return path($dir)->absolute;
 }
 
 sub stubborn_rm_rf {

@@ -1,31 +1,6 @@
 #!/bin/sh
 set -e
-. "$(dirname "$0")/../lib.sh"
-
-resolve_root() {
-   local dir="$1"
-   local src_dir="$2"
-   local cache_dir="$3"
-   case "$dir" in
-      (+*)
-         dir="${dir#?}"
-         ;;
-      (@src:*)
-         dir="${dir#"@src:"}"
-         dir="${src_dir%/}/${dir#/}"
-         ;;
-      (@cache:*)
-         dir="${dir#"@cache:"}"
-         dir="${cache_dir%/}/${dir#/}"
-         ;;
-      (@*:*)
-         LOGDIE "invalid path '$dir', maybe you meant '+$dir'?"
-         ;;
-   esac
-   printf '%s' "$dir"
-}
-
-src="$(resolve_root "${DIBSPACK_INSTALL_SRC:-"$2"}"   "$2" "$3")"
-dst="$(resolve_root "${DIBSPACK_INSTALL_DST:-"/app"}" "$2" "$3")"
-stubborn_rm_rf "$dst"
+src="${4:-"$1"}"
+dst="${5:-"/app"}"
+"$(dirname "$0")/../lib.sh" stubborn_rm_rf "$dst"
 cp -pPR "$src" "$dst"
