@@ -2,14 +2,15 @@
 # vim: ft=sh sw=3 ts=3 sts=3 et ai tw=76 :
 
 main() {
-   local step="$1" src_dir="$2" cache_dir="$3/perl" env_dir="$4"
+   local src_dir="$1" cache_dir="$2/perl" env_dir="$3"
+   local work_dir="${4:-"${DIBSPACK_PERL_APP:-"/app"}"}"
    local md="$(dirname "$0")"
 
    # fail fast, fail hard, possibly loud
    set -e
    if [ "x$DIBSPACK_VERBOSE" = "x1" ] ; then
       set -x -v
-      __main_print_buildpack_details
+      __main_print_dibspack_details
    fi
 
    export PATH="$md:$src_dir/local/bin:$src_dir/local/perl/bin:$PATH"
@@ -17,10 +18,11 @@ main() {
    
    # do real build
    copy_local "$cache_dir" "$src_dir"
-   build      "$src_dir"
+   [ "x$work_dir" = "x$src_dir" ] || ln -s "$src_dir" "$work_dir"
+   build      "$work_dir"
    copy_local "$src_dir" "$cache_dir"
 
-   post_build "$src_dir"
+   post_build "$work_dir"
 
    [ -z "$DIBSPACK_SAVE_ENV" ] \
       || save_build_environment "$src_dir" "$DIBSPACK_SAVE_ENV"
@@ -41,16 +43,17 @@ prepare_run_environment() {
    local profile_dir="$1/.profile.d"
    mkdir -p "$profile_dir"
 
-   # $HOME/local/perl/bin is always added, it might be missing but
+   # $APPHOME/local/perl/bin is always added, it might be missing but
    # no harm done
    cat >"$profile_dir/10.perl-env.sh" <<'END'
-export PATH="$HOME/bin:$HOME/local/bin:$HOME/local/perl/bin:$PATH"
-export PERL5LIB="$HOME/local/lib/perl5:$PERL5LIB"
+: ${APPHOME:="/app"}
+export PATH="$APPHOME/bin:$APPHOME/local/bin:$APPHOME/local/perl/bin:$PATH"
+export PERL5LIB="$APPHOME/local/lib/perl5:$PERL5LIB"
 END
 
-   if [ -n "$BUILDPACK_SET_VERSION" ] ; then
+   if [ -n "$DIBSPACK_SET_VERSION" ] ; then
       printf 'export VERSION=%s\n' \
-         "$(escape_var_value "$BUILDPACK_SET_VERSION")" \
+         "$(escape_var_value "$DIBSPACK_SET_VERSION")" \
          >"$profile_dir/20.version-env.sh"
    fi
 }
@@ -220,8 +223,8 @@ __build_install_dependencies_cpanm() {
       --no-man-pages                        \
       --no-wget                             \
       $CPANM_OPTS                           \
-      ${BUILDPACK_CPANM_VERBOSE:-'--quiet'} \
-      ${BUILDPACK_CPANM_TEST:-'--notest'}   \
+      ${DIBSPACK_CPANM_VERBOSE:-'--quiet'} \
+      ${DIBSPACK_CPANM_TEST:-'--notest'}   \
       -l "$src_dir/local"                   \
       $epan                                 \
       "$@"                                  \
@@ -229,16 +232,16 @@ __build_install_dependencies_cpanm() {
 }
 
 ########################################################################
-__main_print_buildpack_details() {
+__main_print_dibspack_details() {
    echo "environment (sorted)"
    env | sort
    echo ''
-   echo "BUILD_DIR [$BUILD_DIR]"
-   ls -l "$BUILD_DIR"
-   echo "CACHE_DIR [$CACHE_DIR]"
-   ls -l "$CACHE_DIR"
-   echo "ENV_DIR   [$ENV_DIR]"
-   ls -l "$ENV_DIR"
+   echo "src_dir [$src_dir]"
+   ls -l "$src_dir"
+   echo "cache_dir [$cache_dir]"
+   ls -l "$cache_dir"
+   echo "env_dir   [$env_dir]"
+   ls -l "$env_dir"
 }
 
 save_build_environment() {
