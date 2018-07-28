@@ -1,6 +1,145 @@
-#!/bin/sh
-set -e
-src="${DIBSPACK_INSTALL_SRC:-"$2"}"
-dst="${DIBSPACK_INSTALL_DST:-'/app'}"
-"$(dirname "$0")/../lib.sh" rm_forced "$dst"
-cp -pPR "$src" "$dst"
+#!/usr/bin/env perl
+use strict;
+use warnings;
+use FindBin '$Bin';
+use lib "$Bin/lib";
+use Text::Gitignore 'build_gitignore_matcher';
+use Path::Tiny 'path';
+
+use constant DEBUG    => $ENV{DIBSPACK_INSTALL_DEBUG};
+use constant PRINT    => $ENV{DIBSPACK_INSTALL_PRINT};
+use constant PRESERVE => $ENV{DIBSPACK_INSTALL_PRESERVE};
+
+main(@ARGV);
+exit 0;
+
+sub main {
+   my $step = shift;
+   my ($src_dir, $cache_dir, $env_dir) = map { path($_)->absolute } @_;
+   my $dibsignore = $ENV{DIBSPACK_INSTALL_DIBSIGNORE} || '.dibsignore';
+
+   my $src_root = resolve_root(
+      $ENV{DIBSPACK_INSTALL_SRC}, $src_dir,
+      src   => $src_dir,
+      cache => $cache_dir,
+   );
+   my $dst_root = resolve_root(
+      $ENV{DIBSPACK_INSTALL_DST}, '/app',
+      src   => $src_dir,
+      cache => $cache_dir,
+   );
+
+   # get rid of destination first
+   if (! PRINT) {
+      stubborn_rm_rf($dst_root) if $dst_root->exists && ! PRESERVE;
+      $dst_root->mkpath;
+   }
+
+   # now do the copy itself
+   traverse(
+      dibsignore => $dibsignore,
+      src_root   => $src_root,
+      dst_root   => $dst_root,
+      root       => $src_root,
+   );
+
+   # last, copy permissions for top directory
+   copy_permissions($src_root, $dst_root);
+}
+
+sub resolve_root {
+   my ($dir, $default, %dir_for) = @_;
+   $dir = $default unless defined($dir) && length($dir);
+   if (substr($dir, 0, 1) eq '+') {
+      $dir = substr $dir, 1;
+   }
+   elsif (my ($base, $subpath) = $dir =~ m{\A \@ ([^:]*) : (.*)}mxs) {
+      die "unrecognised base '$base'" unless exists $dir_for{$base};
+      $dir = path($dir_for{$base})->child($subpath);
+   }
+   return path($dir)->absolute;
+}
+
+sub stubborn_rm_rf {
+   my $root = shift;
+   $root->chmod('u+rwx');
+   for my $child ($root->children) {
+      if    (-l $child) { $child->remove }
+      elsif (-d $child) { stubborn_rm_rf($child) }
+      else {
+         $child->chmod('u+rw');
+         $child->remove;
+      }
+   }
+   $root->remove_tree;
+}
+
+sub traverse {
+   my %args = @_;
+   my @mcs = @{$args{mcs} || []};
+   my $root = $args{root};
+   plog("traversing '$root'");
+   my $di = $root->child($args{dibsignore});
+   push @mcs, [$root, build_gitignore_matcher([$di->lines({chomp => 1})])]
+      if $di->exists;
+   FILE:
+   for my $src ($root->children) {
+      my $rel = $src->relative($args{src_root});
+
+      for my $m (@mcs) {
+         my ($matcher_root, $matcher) = @$m;
+         if ($matcher->($src->relative($matcher_root))) {
+            plog("ignoring '$rel'");
+            next FILE;
+         }
+      }
+
+      my $dst = $args{dst_root}->child($rel);
+      if ($src->is_dir && ! -l $src) {
+         $dst->mkpath unless PRINT;
+         traverse(%args, mcs => \@mcs, root => $src);
+         copy_permissions($src, $dst);
+      }
+      else {
+         plog("cp $src $dst");
+         if (PRINT) {
+            print {*STDOUT} $rel, "\n";
+         }
+         else {
+            copy($src, $dst);
+         }
+      }
+   }
+   return;
+}
+
+sub copy_permissions {
+   my ($src, $dst) = @_;
+   return if PRINT;
+   my $srcstat = $src->stat;
+   chmod $srcstat->mode, $dst;
+   chown $srcstat->uid, $srcstat->gid, $dst;
+}
+
+sub copy {
+   my ($src, $dst) = @_;
+   if (-f $src) { # plain file
+      $src->copy($dst);
+      copy_permissions($src, $dst);
+   }
+   elsif (-l $src) { # symbolic link
+      symlink readlink($src), $dst;
+   }
+   else {
+      die(
+         (-p $src) ? "unsupported copy of a named pipe\n"
+       : (-S $src) ? "unsupported copy of a socket\n"
+       : (-b $src) ? "unsupported copy of a block special file\n"
+       : (-c $src) ? "unsupported copy of a character special file\n"
+       :             "unsupported copy of an unknown type of file\n"
+      );
+   }
+   return;
+}
+
+sub plog { print {*STDERR} "@_\n" if DEBUG }

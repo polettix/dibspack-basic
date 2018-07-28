@@ -2,41 +2,22 @@
 # vim: ft=sh sw=3 ts=3 sts=3 et ai tw=76 :
 
 main() {
+   local step="$1" src_dir="$2" cache_dir="$3/perl" env_dir="$4"
    local md="$(dirname "$0")"
-	. "$md/../lib.sh"
-   local action="${DIBSPACK_ACTION:-$1}"
-   case "$action" in
-      (build)  main_build  "$@" ;;
-      (bundle) main_bundle "$@" ;;
-      (*)
-         printf >&2 "unsupported action '%s'" "$action"
-         exit 1
-         ;;
-   esac
-}
-
-main_bundle() {
-   local step="$1" src_dir="$2" cache_dir="$3/perl" env_dir="$4"
-   local target="${DIBSPACK_TARGET:-/app}"
-   cp -pPR "$src_dir" "$target" # FIXME...
-}
-
-main_build() {
-   local step="$1" src_dir="$2" cache_dir="$3/perl" env_dir="$4"
 
    # fail fast, fail hard, possibly loud
    set -e
    if [ "x$DIBSPACK_VERBOSE" = "x1" ] ; then
-		set -x -v
-		__main_print_buildpack_details
-	fi
+      set -x -v
+      __main_print_buildpack_details
+   fi
 
    export PATH="$md:$src_dir/local/bin:$src_dir/local/perl/bin:$PATH"
    export PERL5LIB="$src_dir/local/lib/perl5:$PERL5LIB"
    
-	# do real build
+   # do real build
    copy_local "$cache_dir" "$src_dir"
-   build      "$build_dir"
+   build      "$src_dir"
    copy_local "$src_dir" "$cache_dir"
 
    post_build "$src_dir"
@@ -69,7 +50,7 @@ END
 
    if [ -n "$BUILDPACK_SET_VERSION" ] ; then
       printf 'export VERSION=%s\n' \
-			"$(escape_var_value "$BUILDPACK_SET_VERSION")" \
+         "$(escape_var_value "$BUILDPACK_SET_VERSION")" \
          >"$profile_dir/20.version-env.sh"
    fi
 }
@@ -82,8 +63,8 @@ copy_local() {
 }
 
 build() {
-	local src_dir="$1"
-	(
+   local src_dir="$1"
+   (
       cd "$src_dir"
       mkdir -p local
       __build_install_perl
@@ -108,23 +89,23 @@ __build_install_perl() {
       return 0
    fi
 
-	# remove any previous custom perl, we have to change it anyway
-	__build_install_perl_restore_system_perl
+   # remove any previous custom perl, we have to change it anyway
+   __build_install_perl_restore_system_perl
 
-	# download and extract new one
-	local url="$(cat .perl-archive)"
-	echo "getting perl from $url"
-	curl -s -L "$url" | tar xzf -
+   # download and extract new one
+   local url="$(cat .perl-archive)"
+   echo "getting perl from $url"
+   curl -s -L "$url" | tar xzf -
 
-	# move to target place, then make hash-bangs general
-	local archive="${url##*/}"
-	local version="${archive%.tar*}"
-	echo "archive is '$archive', extracted directory '$version'"
-	mv "$version" 'local/perl'
-	__perl_script_relocate 'local/perl/bin'/*
+   # move to target place, then make hash-bangs general
+   local archive="${url##*/}"
+   local version="${archive%.tar*}"
+   echo "archive is '$archive', extracted directory '$version'"
+   mv "$version" 'local/perl'
+   __perl_script_relocate 'local/perl/bin'/*
 
-	# save flag file for comparison in next build
-	cp "$flag_file" "$local_flag_file"
+   # save flag file for comparison in next build
+   cp "$flag_file" "$local_flag_file"
 }
 
 __build_install_perl_restore_system_perl() {
@@ -141,15 +122,15 @@ __perl_script_relocate() {
 
 ########################################################################
 __build_install_dependencies() {
-	local save_epan="$epan"
-	local epan="$save_epan"
+   local save_epan="$epan"
+   local epan="$save_epan"
 
-	# epan dirs in "$@", sweep possible DarkPAN candidates and add them
+   # epan dirs in "$@", sweep possible DarkPAN candidates and add them
    local _d d
    for _d in epan dpan ; do
       d="$PWD/$_d"
       [ -d "$d" ] || continue
-		epan="$epan --mirror $(encode_array_sed "file://$d")"
+      epan="$epan --mirror $(encode_array_sed "file://$d")"
    done
 
    # if something was actually found, insist on using mirrors only
@@ -157,7 +138,7 @@ __build_install_dependencies() {
    # can be overridden
    if [ -n "$epan" ] ; then
       # append "usual" mirrors and use mirrors for index
-		epan="$epan --mirror http://www.cpan.org --mirror-only"
+      epan="$epan --mirror http://www.cpan.org --mirror-only"
    fi
 
    # do stuff from gitpan first, because it's not in the records or
@@ -187,15 +168,15 @@ __build_install_dependencies_gitpanm() {
       # "while" subshell here, changing directory remains localized yay!
       cd "$gpm_dir"
 
-		INFO "gitpanfile -> $name $repo $commit"
-		[ -d "$name" ] || git clone "$repo" "$name"
-		cd "$name"
-		git fetch
-		if [ -n "$commit" ] ; then
-			git checkout "$commit"
-		else
-			git pull origin "$(git rev-parse --abbrev-ref HEAD)"
-		fi
+      INFO "gitpanfile -> $name $repo $commit"
+      [ -d "$name" ] || git clone "$repo" "$name"
+      cd "$name"
+      git fetch
+      if [ -n "$commit" ] ; then
+         git checkout "$commit"
+      else
+         git pull origin "$(git rev-parse --abbrev-ref HEAD)"
+      fi
 
       # recurse for installing this repo's dependencies
       __build_install_dependencies
@@ -216,7 +197,7 @@ __build_install_dependencies_carton() {
    local private_carton='vendor/bin/carton'
    [ -x "$private_carton" ] && carton="$private_carton"
 
-	local params='install --deployment'
+   local params='install --deployment'
    [ -d 'vendor/cache' ] && params="$params --cached"
 
    # if we're recurring, chances are that carton will try to install
@@ -235,28 +216,29 @@ __build_install_dependencies_cpanm() {
    [ -x "$private_cpanm" ] && cpanm="$private_cpanm"
 
    # now do the actual installation heavylifting
-	"$cpanm"                                 \
-		--no-man-pages                        \
-		$CPANM_OPTS                           \
-		${BUILDPACK_CPANM_VERBOSE:-'--quiet'} \
-		${BUILDPACK_CPANM_TEST:-'--notest'}   \
-		-l "$src_dir/local"                   \
-		$epan                                 \
-		"$@"                                  \
-		|| __fail_cpanm_log
+   "$cpanm"                                 \
+      --no-man-pages                        \
+      --no-wget                             \
+      $CPANM_OPTS                           \
+      ${BUILDPACK_CPANM_VERBOSE:-'--quiet'} \
+      ${BUILDPACK_CPANM_TEST:-'--notest'}   \
+      -l "$src_dir/local"                   \
+      $epan                                 \
+      "$@"                                  \
+      || __fail_cpanm_log
 }
 
 ########################################################################
 __main_print_buildpack_details() {
    echo "environment (sorted)"
-	env | sort
-	echo ''
-	echo "BUILD_DIR [$BUILD_DIR]"
-	ls -l "$BUILD_DIR"
-	echo "CACHE_DIR [$CACHE_DIR]"
-	ls -l "$CACHE_DIR"
-	echo "ENV_DIR   [$ENV_DIR]"
-	ls -l "$ENV_DIR"
+   env | sort
+   echo ''
+   echo "BUILD_DIR [$BUILD_DIR]"
+   ls -l "$BUILD_DIR"
+   echo "CACHE_DIR [$CACHE_DIR]"
+   ls -l "$CACHE_DIR"
+   echo "ENV_DIR   [$ENV_DIR]"
+   ls -l "$ENV_DIR"
 }
 
 save_build_environment() {

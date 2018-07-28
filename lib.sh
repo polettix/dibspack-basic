@@ -91,6 +91,11 @@ cleanup_dir() {
 
 rm_forced() { [ -e "$1" ] && chmod -R +w "$1" ; rm -rf "$1" ; }
 
+stubborn_rm_rf() {
+   [ -e "$1" ] && chmod -R +w "$1"
+   rm -rf "$1"
+}
+
 copy_to() {
    dst_root="$1"
    shift
