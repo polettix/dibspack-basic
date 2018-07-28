@@ -44,7 +44,7 @@ else
 fi
 
 # if we arrived here without a .git directory, it's time to clone
-[ -d .git ] || git clone "$origin" .
+[ "x$fresh" = 'xyes' ] && git clone "$origin" .
 
 # hop on the right ref
 current_ref="$(git branch | sed -n -e '/^\*/s/^..//p')"
@@ -52,7 +52,7 @@ if [ "x$ref" != "x$current_ref" ] ; then
    git checkout "$ref"
 fi
 
-if [ "x$fresh" = "xno" ] ; then
+if [ "x$fresh" = 'xno' ] ; then
    # if ref is a branch there's the possibility of an update
    if git branch | grep "^..$ref\$" >/dev/null 2>&1 ; then
       git merge "origin/$ref"
