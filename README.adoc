@@ -1,8 +1,10 @@
-= Basic _dibspack_s
+= Basic dibspacks
 
 :toc:
 :toc-placement!:
+:dibs: https://github.com/polettix/dibs
 
-
+This repository contains some basic dibspacks that can be used with
+{dibs}[dibs].
 
 toc::[]
