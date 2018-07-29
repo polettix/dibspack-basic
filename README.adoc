@@ -5,13 +5,25 @@
 :dibs: https://github.com/polettix/dibs
 
 This repository contains some basic dibspacks that can be used with
-{dibs}[dibs].
+{dibs}[dibs]. To use them, you can...
+
+- ... put a `git` reference to the main repository, e.g.:
+
+----
+definitions:
+  foo:
+    dibspacks:
+      - type: git
+        origin: https://github.com/polettix/dibspack-basic
+        path: name-of-dibspack
+----
+
 
 toc::[]
 
 == `git`
 
-This is for git
+
 
 == `install`
 
