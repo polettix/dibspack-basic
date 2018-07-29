@@ -24,13 +24,37 @@ exit 0;
       %config = (
          debug      => $ENV{DIBSPACK_INSTALL_DEBUG}      || 0,
          dibsignore => $ENV{DIBSPACK_INSTALL_DIBSIGNORE} || '.dibsignore',
-         dst        => $ENV{DIBSPACK_INSTALL_DST}        || '/app',
+         dst        => $ENV{DIBSPACK_INSTALL_DST},
          preserve   => $ENV{DIBSPACK_INSTALL_PRESERVE}   || 0,
          'print'    => $ENV{DIBSPACK_INSTALL_PRINT}      || 0,
-         src        => $ENV{DIBSPACK_INSTALL_SRC}        || $src_dir,
+         src        => $ENV{DIBSPACK_INSTALL_SRC},
       );
       GetOptionsFromArray(\@args, \%config, qw< debug|D! dibsignore|f=s
          dst|d=s preserve|p! print|P! src|s=s >);
+
+      if (@args == 0) {
+         $config{src} = default_value($config{src}, $src_dir);
+         $config{dst} = default_value($config{dst}, '/app');
+      }
+      elsif (@args == 1) {
+         my ($step) = @args;
+         if ($step eq 'build') {
+            $config{src} = default_value($config{src}, $src_dir);
+            $config{dst} = default_value($config{dst},
+               path($cache_dir, 'app')->stringify);
+         }
+         elsif ($step eq 'bundle') {
+            $config{src} = default_value($config{src},
+               path($cache_dir, 'app')->stringify);
+            $config{dst} = default_value($config{dst}, '/app');
+         }
+         else {
+            die "unknown parameter ($step)\n";
+         }
+      }
+      else {
+         die "unknown parameters (@args)\n";
+      }
 
       my ($dst, $src) = map { path($_)->absolute } @config{qw< dst src >};
 
@@ -51,6 +75,12 @@ exit 0;
       # last, copy permissions for top directory
       copy_permissions($src, $dst);
    }
+}
+
+sub default_value {
+   my ($main, $default) = @_;
+   return $main if defined($main) && length($main);
+   return $default;
 }
 
 sub stubborn_rm_rf {
