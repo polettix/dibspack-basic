@@ -32,28 +32,26 @@ exit 0;
       GetOptionsFromArray(\@args, \%config, qw< debug|D! dibsignore|f=s
          dst|d=s preserve|p! print|P! src|s=s >);
 
-      if (@args == 0) {
+      my $step = defined($ENV{DIBSPACK_STEP}) ? $ENV{DIBSPACK_STEP}
+         : @args == 0 ? undef
+         : @args == 1 ? $args[0]
+         :              die "unknown parameters (@args)";
+      if ((! defined $step) || (! length $step)) {
          $config{src} = default_value($config{src}, $src_dir);
          $config{dst} = default_value($config{dst}, '/app');
       }
-      elsif (@args == 1) {
-         my ($step) = @args;
-         if ($step eq 'build') {
-            $config{src} = default_value($config{src}, $src_dir);
-            $config{dst} = default_value($config{dst},
-               path($cache_dir, 'app')->stringify);
-         }
-         elsif ($step eq 'bundle') {
-            $config{src} = default_value($config{src},
-               path($cache_dir, 'app')->stringify);
-            $config{dst} = default_value($config{dst}, '/app');
-         }
-         else {
-            die "unknown parameter ($step)\n";
-         }
+      elsif ($step eq 'build') {
+         $config{src} = default_value($config{src}, $src_dir);
+         $config{dst} = default_value($config{dst},
+            path($cache_dir, 'app')->stringify);
+      }
+      elsif ($step eq 'bundle') {
+         $config{src} = default_value($config{src},
+            path($cache_dir, 'app')->stringify);
+         $config{dst} = default_value($config{dst}, '/app');
       }
       else {
-         die "unknown parameters (@args)\n";
+         die "unknown parameter ($step)\n";
       }
 
       my ($dst, $src) = map { path($_)->absolute } @config{qw< dst src >};

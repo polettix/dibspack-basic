@@ -3,6 +3,8 @@
 :toc:
 :toc-placement!:
 :dibs: https://github.com/polettix/dibs
+:git: https://git-scm.com/
+:cpanm: https://metacpan.org/pod/cpanm
 
 This repository contains some basic dibspacks that can be used with
 {dibs}[dibs]. To use them, you can...
@@ -21,26 +23,273 @@ definitions:
 
 toc::[]
 
-== `git`
+== `git/fetch`
+
+This dibspack helps checking out a git repository. It is called like this:
+
+    git/fetch src_dir cache_dir env_dir [git_uri]
+
+where the first three parameters are the standard dibspack ones, and the
+fourth optional parameter is a URI where the code can be found. In case this
+parameters is absent, environment variable `DIBSPACK_GIT_URI` is used instead
+(or an exception is thrown if this is not defined properly too).
+
+The git URI can include a *fragment* section, interpreted as whatever comes
+after the first dash character `#`. When present, the fragment represents the
+ref to check out; by default, the `master` branch is considered. This can help
+pinning a specific revision and avoid surprises due to updates.
+
+The checkout is performed in the `src_dir` directory, i.e. the directory
+passed as the first positional parameters. If this directory already contains
+a `.git` sub-directory and environment variable `DIBSPACK_GIT_REFRESH` is set
+to `1` (exactly), then the current contents will be used for a `fetch` from
+the current `origin` remote. Otherwise, the `src_dir` is wiped out completely
+and the remote is cloned to get a fresh copy.
+
+It is possible to set variable `DIBSPACK_GIT_DEBUG` to `1` (exactly) and
+activate the shell's capabilities for debugging (options `-x` and '-v').
+
+Example usage in a `dibs.yml` file:
+
+----
+definitions:
+  foo:
+    dibspacks:
+      - type:   git
+        origin: https://github.com/polettix/dibspack-basic
+        path:   git/fetch
+        args:
+          - https://github.com/polettix/sample-mojo#844f256
+----
+
+This dibspack requires `git` to be available in the container; it contains
+some scripts to assist in the installation of `git` depending on the operating
+system tools inside the container (e.g. Alpine, Debian, ...).
 
 
+== `install/plain-copy`
 
-== `install`
+This buildpack copies files from a source to a destination. It is invoked like
+this:
 
-This is for install
+    install/plain-copy src_dir cache_dir env_dir source destination
 
-== `perl`
+If `source` is missing or empty, `src_dir` is used instead. If `destination`
+is empty, path `/app` is used instead.
 
-This is for perl
+This dibspack tries hard to get rid of `destination` before starting the copy.
+
+The copy is done using `cp -pPR` to keep the same permissions as in the
+source.
+
+Example usage in a `dibs.yml` file:
+
+----
+definitions:
+  foo:
+    dibspacks:
+      - type:   git
+        origin: https://github.com/polettix/dibspack-basic
+        path:   install/plain-copy
+        args:
+          - path_cache: '/app'
+          - '/app'
+----
+
+
+== `install/with-dibspack`
+
+This buildpack copies files from a source to a destination, pruning those that
+match patterns defined inside a file. This allows selecting only part of the
+files in a wider source, leaving behind those that possibly help
+building/testing artifacts but are then unneeded in the normal runtime phase.
+
+It is invoked like this:
+
+    install/with-dibspack src_dir cache_dir env_dir [options...] [step]
+
+This program is a Perl program and supports flexible __GNU-style__ parameters:
+
+- `--debug`/`-D`: boolean option, turn on debug mode (defaults to value of
+  environment variable `DIBSPACK_INSTALL_DEBUG` and to `off` as a fallback).
+
+- `--dibsignore`/`-f`: string option, sets the name of the file where to take
+  patterns for exclusions. It defaults to environment variable
+  `DIBSPACK_INSTALL_DIBSIGNORE` and, as a fallback. to the string
+  `.dibsignore`. There can be one such file inside each directory where you
+  want to do pruning.
+
+- `--dst`/`-d`: string setting the destination of the copy. It defaults to the
+  environment variable `DIBSPACK_INSTALL_DST` and, depending on the `step`
+  parameter, to something else as a fallback (see below).
+
+- `--preserve`/`-p`: boolean option, when set it does not wipe the previous
+  content of the destination directory. It defaults to the environment
+  variable `DIBSPACK_INSTALL_PRESERVE` or to a false value as fallback.
+
+- `--print`/`-P`: boolean option, when set it does not copy anything but
+  prints on standard output what will be copied. Defaults to environment
+  variable `DIBSPACK_INSTALL_PRINT` or to a false value as fallback.
+
+- `--src`/`-s`: string setting the source of the copy. It defaults to the
+  environment variable `DIBSPACK_INSTALL_SRC` and, depending to the `step`
+  parameter, to something else as a fallback (see below).
+
+The optional parameter `step` is a shorthand to set fallback defaults for the
+source and destination directories, namely:
+
+- if it takes value `build`, then the source eventually defaults to `src_dir`
+  (i.e. the first positional parameter) and the destination to sub-directory
+  `app` inside the cache directory (i.e. the second parameter).
+
+- if it takes value `bundle', then the source eventuall defaults to
+  sub-directory `app` inside the cache directory (i.e. the second parameter)
+  and the destination defaults to `/app`.
+
+- any other value throws an exception.
+
+The step can also be set via environment variable `DIBSPACK_STEP`.
+
+The dibsignore file has the same format and follows the same rules as the more
+popular `.gitignore` file used by {git}[Git].
+
+This program requires to run Perl inside the container. This should be a
+no-problem in the *build* steps, but might be trickier in the *bundle* steps.
+If this is actually the case, the suggestion is to prepare the copy with
+`install/with-dibspack` during the *build* step, then use
+`install/simple-copy` (which only relies on POSIX compliant `/bin/sh`) to
+place the artifacts in the right place during the *bundle* step.
+
+
+== `perl/build`
+
+This dibspack aims at _compiling_ Perl code. As a matter of fact, it only
+makes sure that prerequisites modules are properly installed, e.g. via `cpanm`
+or `carton`. It is invoked like this:
+
+    perl/build src_dir cache_dir env_dir [work_dir]
+
+When set, `work_dir` indicates that installations should be done "from within"
+the specific directory. To do this, `work_dir` is created as a symlink to
+`src_dir` and then the rest of operations performed from there. If not set, it
+defaults to the environment variable `DIBSPACK_PERL_APP` or, as a fallback,
+the string `/app`.
+
+The dibspack saves some configurations inside the target directory
+(`work_dir`/`src_dir`) in file `.profile/10.perl-env.sh` (directory `.profile`
+is the __profile_dir__). This is mainly aimed at setting the right paths for
+executing the shipped Perl programs.
+
+Other environment variables can influence the dibspack execution:
+
+- `DIBSPACK_VERBOSE`, when set to `1` (exactly) turns on verbose mode.
+
+- `DIBSPACK_SAVE_ENV` can be set to a path where the environment is saved
+  (both `env` and `set`). If the variable is defined but it does *not* start
+  with a slash, then the environment is saved inside directory `/.build_env`.
+
+- `DIBSPACK_SET_VERSION`, when set to a non-empty string, triggers its saving
+  inside the __profile_dir__ inside file `20.version-env.sh`.
+
+- `CPANM_OPTS` options passed to {cpanm}[cpanm].
+
+- `DIBSPACK_CPANM_VERBOSE` sets verbose mode when running cpanm. Defaults to
+  `--quiet`.
+
+- `DIBSPACK_CPANM_TEST` sets or disable testing of modules. Defaults to
+  `--notest`.
+
 
 == `prereqs`
 
-This is for prereqs
+This dibspack supports in the installation of OS-specific
+packages/prerequisites. It is invoked like this:
 
-== `procfile`
+    prereqs src_dir cache_dir env_dir [step] [detect]
 
-This is for procfile
+You are supposed to have a `prereqs` sub-directory in your source tree, and
+have files like this inside (executable):
+
+    alpine.build
+    alpine.bundle
+    debian.build
+    debian.bundle
+    debian.some-other-step...
+
+It works like this:
+
+- it establishes the platform's architecture either through environment
+  variable `DIBSPACK_PREREQS_ARCH` or looking at the `ID` inside
+  `/etc/os-release`
+- it runs file `$src_dir/prereqs/$architecture.$step`
+
+You MUST provide the step name in some way, either on the command line or
+through environment variable `DIBSPACK_STEP`.
+
+== `procfile/add`
+
+This adds a simple handler for Procfile-like configurations support. This
+means that you can put a `Procfile` file inside your application directory,
+and it will hopefully honored (it also requires you to set the associated
+program as the entry point of your container).
+
+This dibspack is controlled by environment variables with sensible defaults:
+
+- `DIBSPACK_PROCFILE_DEFAULT`: sets the default process to run, defaults to
+  `web`.
+
+- `DIBSPACK_PROCFILE_RUNNER`: sets the name of the runner inside the
+  container, defaults to `/procfilerun`.
+
+- `DIBSPACK_PROCFILE_SPEC`: sets the position of the `Procfile` file, defaults
+  to `/app/Procfile`.
+
+As anticipated, to use this dibspack effectively you also have to ensure that
+your `dibs.yml` configuration file sets the right entry point and command
+while saving the image, like this:
+
+----
+definitions:
+  # ... definitions for build..., then
+  bundle:
+    from: some:image
+    keep: yes
+    entrypoint:
+        - /procfilerun
+    cmd: []
+    dibspacks:
+      - type:   git
+        origin: https://github.com/polettix/dibspack-basic
+        path:   procfile/add
+    # ...
+----
 
 == `shellrun`
 
-This is for shellrun
+This dibspack is a swiss-army knife that allows you to run shell commands. It
+is invoked like this:
+
+    shellrun src_dir cache_dir env_dir [command1 [command2 [...]]]
+
+Each argument from the fourth on is a shell command that is run "plainly". For
+example, if the argument is `echo ciao a tutti`, then the following is
+executed:
+
+    echo ciao a tutti
+
+and so on.
+
+Example usage:
+
+----
+definitions:
+  foobar:
+    dibspacks:
+      - type:   git
+        origin: https://github.com/polettix/dibspack-basic
+        path:   shellrun
+        args:
+          - "printf '%s\n' 'whatever you want'"
+          - 'ls -l /'
+          # ...
+----

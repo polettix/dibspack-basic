@@ -6,14 +6,8 @@ src_dir="$1"
 step="${4:-"$DIBSPACK_STEP"}"
 [ -n "$step" ] || LOGDIE "step parameter is unknown"
 
-arch="$(architecture)"
+arch="${DIBSPACK_PREREQS_ARCH:-"$(architecture)"}"
 program="$src_dir/prereqs/$arch.$step"
-
-# detect?
-if is_detect "$5" ; then
-   [ -x "$program" ] && exit 0
-   exit 100
-fi
 
 # run
 "$program" "$@"
