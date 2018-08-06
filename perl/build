@@ -18,7 +18,8 @@ main() {
    
    # do real build
    copy_local "$cache_dir" "$src_dir"
-   [ "x$work_dir" = "x$src_dir" ] || ln -s "$src_dir" "$work_dir"
+   [ "x$work_dir" = "x$src_dir" ] || [ -e "$work_dir" ] \
+      || ln -s "$src_dir" "$work_dir"
    build      "$work_dir"
    copy_local "$src_dir" "$cache_dir"
 
@@ -48,7 +49,7 @@ prepare_run_environment() {
    cat >"$profile_dir/10.perl-env.sh" <<'END'
 : ${APPHOME:="/app"}
 export PATH="$APPHOME/bin:$APPHOME/local/bin:$APPHOME/local/perl/bin:$PATH"
-export PERL5LIB="$APPHOME/local/lib/perl5:$PERL5LIB"
+export PERL5LIB="$APPHOME/lib:$APPHOME/local/lib/perl5:$PERL5LIB"
 END
 
    if [ -n "$DIBSPACK_SET_VERSION" ] ; then
