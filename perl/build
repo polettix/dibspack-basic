@@ -3,8 +3,7 @@
 
 main() {
    local src_dir="$1" cache_dir="$2/perl" env_dir="$3"
-   local work_dir="${4:-"${DIBSPACK_PERL_APP:-"/app"}"}"
-   local work_on_copy="${5:-"${DIBSPACK_PERL_COPYSRC:-"no"}"}"
+   local work_dir="${4:-"${DIBSPACK_PERL_APP:-"$src_dir"}"}"
    local md="$(dirname "$0")"
 
    # fail fast, fail hard, possibly loud
@@ -14,20 +13,9 @@ main() {
       __main_print_dibspack_details
    fi
 
-   if [ -n "$work_dir" -a "x$work_dir" != "x$src_dir" ] ; then
-      case "$work_on_copy" in
-         (y|Y|yes|Yes|YES|true|True|TRUE|on|On|ON)
-            sleep 1000
-            exit 1
-            rm -rf "$work_dir"
-            cp -a "$src_dir" "$work_dir"
-            rm -rf "$work_dir/local"
-            ;;
-         (*)
-            [ -e "$work_dir" ] || ln -s "$src_dir" "$work_dir"
-            ;;
-      esac
-   fi
+   [ "x$work_dir" = "x$src_dir" ] \
+      || [ -e "$work_dir" ] \
+      || ln -s "$src_dir" "$work_dir"
 
    export PATH="$md:$work_dir/local/bin:$work_dir/local/perl/bin:$PATH"
    export PERL5LIB="$work_dir/local/lib/perl5:$PERL5LIB"
