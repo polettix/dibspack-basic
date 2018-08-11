@@ -76,6 +76,10 @@ build() {
       mkdir -p local
       __build_install_perl
       __build_install_dependencies
+      if [ -d "script" ] ; then
+         mkdir -p bin
+         cp script/* bin
+      fi
    )
 }
 
