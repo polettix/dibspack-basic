@@ -5,6 +5,7 @@ main() {
    local src_dir="$1" cache_dir="$2/perl" env_dir="$3"
    local work_dir="${4:-"${DIBSPACK_PERL_APP:-"$src_dir"}"}"
    local md="$(dirname "$0")"
+   mkdir -p "$cache_dir"
 
    # fail fast, fail hard, possibly loud
    set -e
