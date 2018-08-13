@@ -1,4 +1,5 @@
 #!/bin/sh
+shift 3 # ignore input paths
 md="$(dirname "$0")"
 for program in "$@" ; do
    cp "$md/$program" /
