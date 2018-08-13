@@ -28,7 +28,7 @@ main() {
    build      "$work_dir"
    copy_local "$work_dir" "$cache_dir"
 
-   post_build "$work_dir"
+   post_build "$work_dir" "$src_dir"
 
    [ -z "$DIBSPACK_SAVE_ENV" ] \
       || save_build_environment "$work_dir" "$DIBSPACK_SAVE_ENV"
@@ -37,8 +37,8 @@ main() {
 }
 
 post_build() {
-   local src_dir="$1" pbf="$1/.post_build"
-   prepare_run_environment "$src_dir"
+   local work_dir="$1" src_dir="$2" pbf="$1/.post_build"
+   prepare_run_environment "$workd_dir" "$src_dir"
    if [[ -f "$pbf" ]] && [[ -x "$pbf" ]] ; then
       INFO "Executing post-build operation"
       "$pbf" "$@"
@@ -47,6 +47,7 @@ post_build() {
 
 prepare_run_environment() {
    local profile_dir="$1/.profile.d"
+   local src_dir="$2"
    mkdir -p "$profile_dir"
 
    # $APPHOME/local/perl/bin is always added, it might be missing but
@@ -69,9 +70,13 @@ END
       # if we're inside a git repo, save the sha digest. FIXME needs more
       # care for dirty state checking etc.
       if type -a git >/dev/null 2>&1 ; then
-         local sha="$(git rev-parse --short HEAD 2>/dev/null || true)"
-         [ -n "$sha" ] && printf 'export GIT_REF=%s\n' \
-            "$(escape_var_value "$sha")"
+         (
+            # "localize" change of directory
+            cd "$src_dir"
+            local sha="$(git rev-parse --short HEAD 2>/dev/null || true)"
+            [ -n "$sha" ] && printf 'export GIT_REF=%s\n' \
+               "$(escape_var_value "$sha")"
+         )
       fi
    } >"$profile_dir/20.version-env.sh"
 
