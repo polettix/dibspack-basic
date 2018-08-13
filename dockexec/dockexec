@@ -1,0 +1,43 @@
+#!/bin/sh
+set -e
+
+ensure_user_in_docker() {
+   local uname="$1"
+   gid="$(stat -c '%g' /var/run/docker.sock)"
+
+   # if a group with that gid does *not* exist, assign group id to docker
+   if ! grep ":$gid:" /etc/group >/dev/null 2>&1 ; then
+      if grep '^docker:' /etc/group >/dev/null 2>&1 ; then
+         sed -e "s/^\(docker:[^0-9]*\):[0-9]*/\1:$gid/" /etc/group
+      else
+         cat /etc/group
+         printf '%s\n' "docker:x:$gid:"
+      fi >/etc/group.new
+      mv /etc/group.new /etc/group
+   fi
+
+   # whatever, make sure that the relevant group also includes $user
+   if ! grep ":$gid:\($user\$\|$user,\|.*,$user\$\|.*,$user,\)" /etc/group >/dev/null 2>&1
+   then
+      sed -e "/:$gid:/s/\$/,$user/;s/:,/:/" /etc/group > /etc/group.new
+      mv /etc/group.new /etc/group
+   fi
+}
+
+# user to eventually run as
+user="$1"
+
+# path to the program to execute
+program="$2"
+
+# the rest is the program's command line arguments
+shift 2
+
+# empty or '-' user mean that we deduce the user from the owner of $program
+[ -z "$user" -o "$user" = '-' ] && user="$(stat -c '%U' "$program")"
+
+# make sure that $user is capable of talking with the docker socket
+ensure_user_in_docker "$user"
+
+# substitute this process with $program run as $user, with the arguments
+su-exec "$user" "$program" "$@"
