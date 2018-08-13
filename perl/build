@@ -1,6 +1,8 @@
 #!/bin/sh
 # vim: ft=sh sw=3 ts=3 sts=3 et ai tw=76 :
 
+. "$(dirname "$0")/../lib.sh"
+
 main() {
    local src_dir="$1" cache_dir="$2/perl" env_dir="$3"
    local work_dir="${4:-"${DIBSPACK_PERL_APP:-"$src_dir"}"}"
