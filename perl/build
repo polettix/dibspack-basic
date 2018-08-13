@@ -74,6 +74,8 @@ END
             "$(escape_var_value "$sha")"
       fi
    } >"$profile_dir/20.version-env.sh"
+
+   return 0
 }
 
 copy_local() {
