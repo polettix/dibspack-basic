@@ -38,7 +38,7 @@ main() {
 
 post_build() {
    local work_dir="$1" src_dir="$2" pbf="$1/.post_build"
-   prepare_run_environment "$workd_dir" "$src_dir"
+   prepare_run_environment "$work_dir" "$src_dir"
    if [[ -f "$pbf" ]] && [[ -x "$pbf" ]] ; then
       INFO "Executing post-build operation"
       "$pbf" "$@"
