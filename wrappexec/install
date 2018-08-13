@@ -1,0 +1,5 @@
+#!/bin/sh
+md="$(dirname "$0")"
+for program in "$@" ; do
+   cp "$md/$program" /
+done
