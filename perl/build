@@ -6,6 +6,8 @@
 main() {
    local src_dir="$1" cache_dir="$2/perl" env_dir="$3"
    local work_dir="${4:-"${DIBSPACK_PERL_APP:-"$src_dir"}"}"
+   shift 3
+   [ "$#" -gt 0 ] && shift 1
    local md="$(dirname "$0")"
    mkdir -p "$cache_dir"
 
@@ -15,6 +17,10 @@ main() {
       set -x -v
       __main_print_dibspack_details
    fi
+
+   # export possible additional variables
+   local def
+   for def in "$@" ; do eval "export $def" ; done
 
    [ "x$work_dir" = "x$src_dir" ] \
       || [ -e "$work_dir" ] \
