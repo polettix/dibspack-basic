@@ -1,0 +1,36 @@
+#!/bin/sh
+file="$1"
+shift
+
+separator=''
+for arg in "$@" ; do
+
+   # expand arg as needed, put result in value
+   case "$arg" in
+
+      # args starting with $$ will just strip away the first $, so that you
+      # can print a verbatim $ at the beginning. To print "$begin" pass
+      # "$$begin".
+      (\$\$*)
+         value="${arg%${arg#?}}"
+         ;;
+
+      # otherwise, whatever starts with $ is interpreted as variable
+      # expansion
+      (\$*)
+         eval "value=\"$arg\""
+         ;;
+
+      # otherwise, it's just the verbatim thing
+      (*)
+         value="$arg"
+         ;;
+   esac
+
+   # print the thing out. On the first run, separator is empty
+   printf '%s%s' "$separator" "$value"
+
+   # from second arg on, a separator is needed
+   separator=' '
+
+done >"$file"
