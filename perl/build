@@ -55,11 +55,23 @@ export PATH="$APPHOME/bin:$APPHOME/local/bin:$APPHOME/local/perl/bin:$PATH"
 export PERL5LIB="$APPHOME/lib:$APPHOME/local/lib/perl5:$PERL5LIB"
 END
 
-   if [ -n "$DIBSPACK_SET_VERSION" ] ; then
-      printf 'export VERSION=%s\n' \
-         "$(escape_var_value "$DIBSPACK_SET_VERSION")" \
-         >"$profile_dir/20.version-env.sh"
-   fi
+   {
+      # this is not really needed because DIBS_ID will eventually survive
+      # inside container anyway
+      printf 'export DIBS_ID=%s\n' "$(escape_var_value "$DIBS_ID")"
+
+      # if the version is set from outside, it's with this env var
+      [ -n "$DIBSPACK_SET_VERSION" ] && printf 'export VERSION=%s\n' \
+         "$(escape_var_value "$DIBSPACK_SET_VERSION")"
+
+      # if we're inside a git repo, save the sha digest. FIXME needs more
+      # care for dirty state checking etc.
+      if type -a git >/dev/null 2>&1 ; then
+         local sha="$(git rev-parse --short HEAD 2>/dev/null || true)"
+         [ -n "$sha" ] && printf 'export GIT_REF=%s\n' \
+            "$(escape_var_value "$sha")"
+      fi
+   } >"$profile_dir/20.version-env.sh"
 }
 
 copy_local() {
