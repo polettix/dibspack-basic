@@ -157,7 +157,7 @@ parse_opts() {
             shift
             ;;
          (*)
-            LOGDIE "stray option '$1'"
+            LOGDIE "stray option '$optname'"
             ;;
       esac
    done
