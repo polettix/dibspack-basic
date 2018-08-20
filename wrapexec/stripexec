@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+path="$4"
+shift 4 # ignore dibspack-specific arguments
+if [ "x${path%${path#?}}" != "x/" ] ; then
+   path="$(dirname "$0")/$path"
+   [ "x${path%{$path#??}}" = "x//" ] && path="${path#?}"
+fi
+exec "$path" "$@"
