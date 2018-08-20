@@ -1,0 +1,256 @@
+#!/bin/sh
+set -e
+. "$(dirname "$0")/../lib.sh"
+
+main() {
+   parse_opts "$@"
+
+   # check/normalize OS as env variable
+   normalize_OS
+
+   # adjust variables for user, also make sure it has a name
+   adjust_vars 'USER_ID' 'USER_NAME' 'USER_EXISTS' '/etc/passwd'
+   [ -n "$USER_NAME" ] || USER_NAME="$(find_newname '' 'user' '/etc/passwd')"
+
+   # adjust variables for group, it does not necessarily need to eventually
+   # exist
+   adjust_vars 'GROUP_ID' 'GROUP_NAME' 'GROUP_EXISTS' '/etc/group'
+
+   if [ -z "$GROUP_EXISTS" -a -n "$GROUP_NAME$GROUP_ID" ] ; then
+      # need to create the main group, ensure it has a name
+      [ -n "$GROUP_NAME" ] || GROUP_NAME="$(find_newname "$USER_NAME" 'group' '/etc/group')"
+      "${OS}_create_group" "$GROUP_NAME" "$GROUP_ID"
+
+      # re-read variables for group
+      adjust_vars 'GROUP_ID' 'GROUP_NAME' 'GROUP_EXISTS' '/etc/group'
+   fi
+
+   # now the main group either exists, or is not needed, hence...
+   if [ -n "$GROUP_EXISTS" -a -n "$USER_EXISTS" ] ; then
+      # if user exists as well, then ensure it has the right primary g.
+      local line="$(grep "^$USER_NAME:[^:]*:$USER_ID:$GROUP_ID:" \
+         /etc/passwd || true)"
+      [ -n "$line" ] || "${OS}_set_main_group"
+   fi
+
+   # now ensure the user exists, then re-align variables for user
+   [ -n "$USER_EXISTS" ] || "${OS}_create_user"
+   adjust_vars 'USER_ID' 'USER_NAME' 'USER_EXISTS' '/etc/passwd'
+
+   # so far so good for user and main group. From now on, we will leverage
+   # GROUP_NAME and GROUP_ID for handling additional groups. First of all
+   # let's reload $ALSO_GROUPS inside "$@", then iterate over it
+   eval "set -- $ALSO_GROUPS"
+   for added do
+      GROUP_NAME=''
+      GROUP_ID="${added##*:}"
+      if [ "x$GROUP_ID" != "x$added" ] ; then
+         GROUP_NAME="${added%%:*}"
+      else
+         if ! printf '%s' "$added" | grep '^[0-9][0-9]*$' >/dev/null 2>&1 ; then
+            GROUP_NAME="$added"
+            GROUP_ID=''
+         fi
+      fi
+      adjust_vars 'GROUP_ID' 'GROUP_NAME' 'GROUP_EXISTS' '/etc/group'
+      if [ -z "$GROUP_EXISTS" ] ; then
+         [ -n "$GROUP_NAME" ] || GROUP_NAME="$(find_newname '' 'group' '/etc/group')"
+         "${OS}_create_group" "$GROUP_NAME" "$GROUP_ID"
+      fi
+      "${OS}_add_user_to_group" "$GROUP_NAME"
+   done
+   
+   # whatever remained after parsing is what we want to run as $USER_NAME-
+   # Again, re-load array "$@" with relevant data
+   eval "set -- $parsed_remained_args"
+   [ "$#" -gt 0 ] && su-exec "$USER_NAME" "$@"
+
+   # this should never be reached actually
+   return 0
+}
+
+adjust_vars() {
+   local rid="$1"
+   local rname="$2"
+   local rexists="$3"
+   local file="$4"
+   local id="$(eval "printf '%s' \"\$$rid\"")"
+   local name="$(eval "printf '%s' \"\$$rname\"")"
+   eval "$rexists=''"
+   if [ -n "$id" ] ; then
+      local line="$(grep "^[^:]*:[^:]*:$id:" "$file" || true)"
+      if [ -n "$line" ] ; then
+         eval "$rexists=YES"
+         local current_name="${line%%:*}"
+         if [ -z "$name" ] ; then
+            eval "$rname=$(escape_var_value "$current_name")"
+         elif [ "x$name" != "x$current_name" ] ; then
+            LOGDIE "cannot associate id '$id' to '$name' in '$file'"
+         fi
+      fi
+   elif [ -n "$name" ] ; then
+      local line="$(grep "^$name:" "$file" || true)"
+      if [ -n "$line" ] ; then
+         eval "$rexists=YES"
+         id="$(printf '%s' "$line" | cut -d: -f 3)"
+         eval "$rid=$(escape_var_value "$id")"
+      fi
+   fi
+}
+
+parse_opts() {
+   accumulate=''
+   while [ "$#" -gt 0 ] ; do
+      optname="$1"
+      shift
+      case "$optname" in
+         (--)
+            break;
+            ;;
+         (--also-group|--also)
+            [ "$#" -gt 0 ] || LOGDIE "no value for $optname"
+            if [ -z "$accumulate" ] ; then
+               ALSO_GROUPS=''
+               accumulate='YES'
+            fi
+            ALSO_GROUPS="$ALSO_GROUPS $(escape_var_value "$1")"
+            shift
+            ;;
+         (--gid|-G)
+            [ "$#" -gt 0 ] || LOGDIE "no value for $optname"
+            GROUP_ID="$1"
+            shift
+            ;;
+         (--group|-g)
+            [ "$#" -gt 0 ] || LOGDIE "no value for $optname"
+            GROUP_NAME="$1"
+            shift
+            ;;
+         (--home|-h)
+            [ "$#" -gt 0 ] || LOGDIE "no value for $optname"
+            HOME_DIR="$1"
+            shift
+            ;;
+         (--os)
+            [ "$#" -gt 0 ] || LOGDIE "no value for $optname"
+            OS="$1"
+            shift
+            ;;
+         (--reference|-r)
+            [ "$#" -gt 0 ] || LOGDIE "no value for $optname"
+            USER_ID="$(  stat -c '%u' "$1"  )"
+            GROUP_ID="$( stat -c '%g' "$1"  )"
+            shift
+            ;;
+         (--uid|-U)
+            [ "$#" -gt 0 ] || LOGDIE "no value for $optname"
+            USER_ID="$1"
+            shift
+            ;;
+         (--user|-u)
+            [ "$#" -gt 0 ] || LOGDIE "no value for $optname"
+            USER_NAME="$1"
+            shift
+            ;;
+         (*)
+            LOGDIE "stray option '$1'"
+            ;;
+      esac
+   done
+   parsed_remained_args="$(encode_array_sed "$@")"
+}
+
+normalize_OS() {
+   : ${OS:="$(sed -n 's/^ID=//p' /etc/os-release)"}
+   case "$OS" in
+      (alpine)
+         : # Alpine linux is supported and normalized
+         ;;
+      (debian|ubuntu|centos|rhel)
+         OS='debian'
+         ;;
+      (*)
+         if type -a usermod >/dev/null 2>&1 ; then
+            OS='debian'
+         else
+            LOGDIE "distribution '$OS' not supported... patch?"
+         fi
+         ;;
+   esac
+}
+
+find_newname() {
+   local candidate="$1"
+   local prefix="$2"
+   local file="$3"
+   [ -z "$__id" ] && __id=0
+   [ -n "$candidate" ] || candidate="$prefix$__id"
+   while true ; do
+      if ! grep "^$candidate:" /etc/group >/dev/null 2>&1 ; then
+         printf '%s' "$candidate"
+         return 0
+      fi
+      candidate="$prefix$__id"
+      __id=$((__id + 1))
+   done
+}
+
+########################################################################
+#
+# Alpine Linux
+#
+########################################################################
+
+alpine_create_user() {
+   local args="$(encode_array_sed '-D' '-H' "$USER_NAME")"
+   [ -n "$GROUP_EXISTS" ] && args="$(encode_array_sed '-G' "$GROUP_NAME") $args"
+   [ -n "$HOME_DIR" ] && args="$(encode_array_sed '-h' "$HOME_DIR") $args"
+   eval "set -- $args"
+   adduser "$@"
+}
+
+alpine_create_group() {
+   local args="$(encode_array_sed "$1")"
+   [ -n "$2" ] && args="$(encode_array_sed '-g' "$2") $args"
+   eval "set -- $args"
+   addgroup "$@"
+}
+
+alpine_set_main_group() {
+   sed -e "s/^\($USER_NAME:[^:]*:$USER_ID\):[^:]*/\1:$GROUP_ID/" \
+      /etc/passwd >/etc/passwd.new
+   mv /etc/passwd.new /etc/passwd
+}
+
+alpine_add_user_to_group() { adduser "$USER_NAME" "$1" ; }
+
+
+########################################################################
+#
+# Everything with useradd/groupadd/usermod
+#
+########################################################################
+
+debian_create_user() {
+   local args="$(encode_array_sed '-M' "$USER_NAME")"
+   [ -n "$GROUP_EXISTS" ] && args="$(encode_array_sed '-g' "$GROUP_ID") $args"
+   [ -n "$HOME_DIR" ] && args="$(encode_array_sed '-d' "$HOME_DIR") $args"
+   eval "set -- $args"
+   useradd "$@"
+}
+
+debian_create_group() {
+   local args="$(encode_array_sed "$1")"
+   [ -n "$2" ] && args="$(encode_array_sed '-g' "$2") $args"
+   eval "set -- $args"
+   groupadd "$@"
+}
+
+debian_set_main_group() { usermod -g "$GROUP_ID" "$USER_NAME" ; }
+
+debian_add_user_to_group() { usermod -a -G "$1" "$USER_NAME" ; }
+
+
+########################################################################
+main "$@"
+exit "$?"
