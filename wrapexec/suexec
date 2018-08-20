@@ -65,7 +65,8 @@ main() {
    eval "set -- $parsed_remained_args"
    [ "$#" -gt 0 ] && su-exec "$USER_NAME" "$@"
 
-   # this should never be reached actually
+   # this should never be reached actually, unless the only goal was to
+   # create the user and associate them with the group(s)
    return 0
 }
 
