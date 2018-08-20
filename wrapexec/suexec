@@ -99,7 +99,8 @@ adjust_vars() {
 }
 
 parse_opts() {
-   accumulate=''
+   local also_groups=''
+   local tmp
    while [ "$#" -gt 0 ] ; do
       optname="$1"
       shift
@@ -107,13 +108,15 @@ parse_opts() {
          (--)
             break;
             ;;
-         (--also-group|--also)
+         (--also)
             [ "$#" -gt 0 ] || LOGDIE "no value for $optname"
-            if [ -z "$accumulate" ] ; then
-               ALSO_GROUPS=''
-               accumulate='YES'
-            fi
-            ALSO_GROUPS="$ALSO_GROUPS $(escape_var_value "$1")"
+            also_groups="$also_groups $(escape_var_value "$1")"
+            shift
+            ;;
+         (--also-for)
+            [ "$#" -gt 0 ] || LOGDIE "no value for $optname"
+            tmp="$(stat -c '%g' "$1")"
+            also_groups="$also_groups $(escape_var_value "$tmp")"
             shift
             ;;
          (--gid|-G)
@@ -157,6 +160,7 @@ parse_opts() {
             ;;
       esac
    done
+   [ -n "$also_groups" ] && ALSO_GROUPS="$also_groups"
    parsed_remained_args="$(encode_array_sed "$@")"
 }
 
