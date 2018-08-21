@@ -63,7 +63,7 @@ main() {
    # whatever remained after parsing is what we want to run as $USER_NAME-
    # Again, re-load array "$@" with relevant data
    eval "set -- $parsed_remained_args"
-   [ "$#" -gt 0 ] && su-exec "$USER_NAME" "$@"
+   [ "$#" -gt 0 ] && exec su-exec "$USER_NAME" "$@"
 
    # this should never be reached actually, unless the only goal was to
    # create the user and associate them with the group(s)
