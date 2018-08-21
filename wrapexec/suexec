@@ -205,6 +205,31 @@ find_newname() {
    done
 }
 
+encode_array_sed() {
+   for i do
+      printf %s\\n "$i" | sed "s/'/'\\\\''/g;1s/^/'/;\$s/\$/' \\\\/"
+   done
+   echo " "
+}
+
+escape_var_value() {
+   local value=$1
+   printf '%s' "'"
+   while : ; do
+      case "$value" in
+         (*\'*)
+            printf '%s%s' "${value%%\'*}" "'\\''"
+            value=${value#*\'}
+            ;;
+         (*)
+            printf '%s' "$value"
+            break
+            ;;
+      esac
+   done
+   printf '%s' "'"
+}
+
 ########################################################################
 #
 # Alpine Linux
