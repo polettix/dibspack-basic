@@ -1,8 +1,7 @@
 #!/bin/sh
-set -e
-. "$(dirname "$0")/../lib.sh"
 
 main() {
+   set -e
    parse_opts "$@"
 
    # check/normalize OS as env variable
@@ -18,7 +17,8 @@ main() {
 
    if [ -z "$GROUP_EXISTS" -a -n "$GROUP_NAME$GROUP_ID" ] ; then
       # need to create the main group, ensure it has a name
-      [ -n "$GROUP_NAME" ] || GROUP_NAME="$(find_newname "$USER_NAME" 'group' '/etc/group')"
+      [ -n "$GROUP_NAME" ] \
+         || GROUP_NAME="$(find_newname "$USER_NAME" 'group' '/etc/group')"
       "${OS}_create_group" "$GROUP_NAME" "$GROUP_ID"
 
       # re-read variables for group
@@ -70,6 +70,11 @@ main() {
    return 0
 }
 
+die() {
+   printf >&2 '%s\n' "$*"
+   exit 1
+}
+
 adjust_vars() {
    local rid="$1"
    local rname="$2"
@@ -86,7 +91,7 @@ adjust_vars() {
          if [ -z "$name" ] ; then
             eval "$rname=$(escape_var_value "$current_name")"
          elif [ "x$name" != "x$current_name" ] ; then
-            LOGDIE "cannot associate id '$id' to '$name' in '$file'"
+            die "cannot associate id '$id' to '$name' in '$file'"
          fi
       fi
    elif [ -n "$name" ] ; then
@@ -110,54 +115,54 @@ parse_opts() {
             break;
             ;;
          (--also)
-            [ "$#" -gt 0 ] || LOGDIE "no value for $optname"
+            [ "$#" -gt 0 ] || die "no value for $optname"
             also_groups="$also_groups $(escape_var_value "$1")"
             shift
             ;;
          (--also-for)
-            [ "$#" -gt 0 ] || LOGDIE "no value for $optname"
+            [ "$#" -gt 0 ] || die "no value for $optname"
             tmp="$(stat -c '%g' "$1")"
             also_groups="$also_groups $(escape_var_value "$tmp")"
             shift
             ;;
          (--gid|-G)
-            [ "$#" -gt 0 ] || LOGDIE "no value for $optname"
+            [ "$#" -gt 0 ] || die "no value for $optname"
             GROUP_ID="$1"
             shift
             ;;
          (--group|-g)
-            [ "$#" -gt 0 ] || LOGDIE "no value for $optname"
+            [ "$#" -gt 0 ] || die "no value for $optname"
             GROUP_NAME="$1"
             shift
             ;;
          (--home|-h)
-            [ "$#" -gt 0 ] || LOGDIE "no value for $optname"
+            [ "$#" -gt 0 ] || die "no value for $optname"
             HOME_DIR="$1"
             shift
             ;;
          (--os)
-            [ "$#" -gt 0 ] || LOGDIE "no value for $optname"
+            [ "$#" -gt 0 ] || die "no value for $optname"
             OS="$1"
             shift
             ;;
          (--reference|-r)
-            [ "$#" -gt 0 ] || LOGDIE "no value for $optname"
+            [ "$#" -gt 0 ] || die "no value for $optname"
             USER_ID="$(  stat -c '%u' "$1"  )"
             GROUP_ID="$( stat -c '%g' "$1"  )"
             shift
             ;;
          (--uid|-U)
-            [ "$#" -gt 0 ] || LOGDIE "no value for $optname"
+            [ "$#" -gt 0 ] || die "no value for $optname"
             USER_ID="$1"
             shift
             ;;
          (--user|-u)
-            [ "$#" -gt 0 ] || LOGDIE "no value for $optname"
+            [ "$#" -gt 0 ] || die "no value for $optname"
             USER_NAME="$1"
             shift
             ;;
          (*)
-            LOGDIE "stray option '$optname'"
+            die "stray option '$optname'"
             ;;
       esac
    done
@@ -178,7 +183,7 @@ normalize_OS() {
          if type -a usermod >/dev/null 2>&1 ; then
             OS='debian'
          else
-            LOGDIE "distribution '$OS' not supported... patch?"
+            die "distribution '$OS' not supported... patch?"
          fi
          ;;
    esac
@@ -257,5 +262,9 @@ debian_add_user_to_group() { usermod -a -G "$1" "$USER_NAME" ; }
 
 
 ########################################################################
-main "$@"
-exit "$?"
+# "modulino"-style, run if called, not source-d
+if grep -- '6black3holebsunfwontdyou3come1e4' "$0" >/dev/null 2>&1 ; then
+   main "$@"
+   exit "$?"
+fi
+unset main
