@@ -114,12 +114,12 @@ parse_opts() {
          (--)
             break;
             ;;
-         (--also)
+         (--also|-a)
             [ "$#" -gt 0 ] || die "no value for $optname"
             also_groups="$also_groups $(escape_var_value "$1")"
             shift
             ;;
-         (--also-for)
+         (--also-for|-A)
             [ "$#" -gt 0 ] || die "no value for $optname"
             tmp="$(stat -c '%g' "$1")"
             also_groups="$also_groups $(escape_var_value "$tmp")"
