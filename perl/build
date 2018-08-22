@@ -4,10 +4,9 @@
 . "$(dirname "$0")/../lib.sh"
 
 main() {
-   local src_dir="$1" cache_dir="$2/perl" env_dir="$3"
-   local work_dir="${4:-"${DIBSPACK_PERL_APP:-"$src_dir"}"}"
-   shift 3
-   [ "$#" -gt 0 ] && shift 1
+   local src_dir cache_dir env_dir work_dir
+   parse_opts "$@"
+   : ${work_dir:="${DIBSPACK_PERL_APP:-"$src_dir"}"}
    local md="$(dirname "$0")"
    mkdir -p "$cache_dir"
 
@@ -17,10 +16,6 @@ main() {
       set -x -v
       __main_print_dibspack_details
    fi
-
-   # export possible additional variables
-   local def
-   for def in "$@" ; do eval "export $def" ; done
 
    [ "x$work_dir" = "x$src_dir" ] \
       || [ -e "$work_dir" ] \
@@ -40,6 +35,57 @@ main() {
       || save_build_environment "$work_dir" "$DIBSPACK_SAVE_ENV"
 
    echo build_complete
+}
+
+parse_opts() {
+   src_dir="$1" cache_dir="$2/perl" env_dir="$3"
+   shift 3
+
+   local optname optval
+   while [ "$#" -gt 0 ] ; do
+      optname="$1"
+      shift
+      case "$optname" in
+         (--cpanm-test)
+            DIBSPACK_CPANM_TEST=''    # does not set "--notest"
+            ;;
+         (--cpanm-verbose)
+            DIBSPACK_CPANM_VERBOSE='' # does not set "--quiet"
+            ;;
+         (--no-cpanm-test)
+            DIBSPACK_CPANM_TEST='--notest'
+            ;;
+         (--no-cpanm-verbose)
+            DIBSPACK_CPANM_VERBOSE='--quiet'
+            ;;
+         (--no-verbose)
+            DIBSPACK_VERBOSE=0
+            DIBSPACK_CPANM_VERBOSE='--quiet'
+            ;;
+         (--save-env)
+            [ "$#" -gt 0 ] || LOGDIE "no value for option $optname"
+            DIBSPACK_SAVE_ENV="$1"
+            shift
+            ;;
+         (--verbose)
+            DIBSPACK_VERBOSE=1
+            DIBSPACK_CPANM_VERBOSE='--quiet'
+            ;;
+         (-V|--set-version)
+            [ "$#" -gt 0 ] || LOGDIE "no value for option $optname"
+            DIBSPACK_SET_VERSION="$1"
+            shift
+            ;;
+         (-w|--work-dir)
+            [ "$#" -gt 0 ] || LOGDIE "no value for option $optname"
+            work_dir="$1"
+            shift
+            ;;
+         (*)
+            LOGDIE "unhandled option $optname"
+            ;;
+      esac
+   done
 }
 
 post_build() {
@@ -258,8 +304,8 @@ __build_install_dependencies_cpanm() {
       --no-man-pages                        \
       --no-wget                             \
       $CPANM_OPTS                           \
-      ${DIBSPACK_CPANM_VERBOSE:-'--quiet'} \
-      ${DIBSPACK_CPANM_TEST:-'--notest'}   \
+      ${DIBSPACK_CPANM_VERBOSE-"--quiet"} \
+      ${DIBSPACK_CPANM_TEST-"--notest"}   \
       -l "$src_dir/local"                   \
       $epan                                 \
       "$@"                                  \
