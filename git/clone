@@ -9,7 +9,7 @@ main() {
 
    # parse options and populate these variables
    local src_dir cache_dir env_dir work_dir git_uri owner
-   parse_opts
+   parse_opts "$@"
 
    # parse Git URI in $git_uri and extract origin and ref
    local origin ref
