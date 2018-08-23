@@ -8,7 +8,7 @@ main() {
    . "$md/../lib.sh"
 
    # parse options and populate these variables
-   local src_dir cache_dir env_dir work_dir git_uri
+   local src_dir cache_dir env_dir work_dir git_uri owner
    parse_opts
 
    # parse Git URI in $git_uri and extract origin and ref
@@ -23,6 +23,8 @@ main() {
    git clone "$origin" "$work_dir"
    cd "$work_dir"
    [ -n "$ref" ] && git checkout "$ref"
+
+   [ -n "$owner" ] && chown -R "$owner" .
 
    return 0
 }
@@ -66,6 +68,11 @@ parse_opts() {
          (--origin|-o)
             [ "$#" -gt 0 ] || LOGDIE "stray option $optname"
             git_uri="$1"
+            shift
+            ;;
+         (--owner|-O)
+            [ "$#" -gt 0 ] || LOGDIE "stray option $optname"
+            owner="$1"
             shift
             ;;
          (--work-dir|-w)
