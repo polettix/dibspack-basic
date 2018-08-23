@@ -48,7 +48,7 @@ parse_opts() {
    env_dir="$3"
    shift 3
 
-   git_uri="$DIBSPACK_GIT_URI"
+   git_uri="${DIBSPACK_GIT_URI:="$src_dir"}"
    work_dir="${DIBSPACK_WORK_DIR:="/app"}"
    [ "x$DIBSPACK_GIT_DEBUG" = "x1" ] && set -v -x
 
