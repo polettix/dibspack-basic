@@ -1,0 +1,84 @@
+#!/bin/sh
+
+main() {
+   set -e # everything is an error
+
+   # import stuff from library of shell functions
+   local md="$(dirname "$0")"
+   . "$md/../lib.sh"
+
+   # parse options and populate these variables
+   local src_dir cache_dir env_dir work_dir git_uri
+   parse_opts
+
+   # parse Git URI in $git_uri and extract origin and ref
+   local origin ref
+   parse_origin "$git_uri"
+   INFO "origin: $origin (ref: $ref)"
+
+   # ensure pre-requisites are installed, most notably git
+   ensure_prereqs
+
+   # clone and checkout the requested ref (if any)
+   git clone "$origin" "$work_dir"
+   cd "$work_dir"
+   [ -n "$ref" ] && git checkout "$ref"
+
+   return 0
+}
+
+ensure_prereqs() {
+   # ensure_prereqs are installed, most notably git should be there
+   arch="$(architecture)"
+   [ -x "$md/prereqs/$arch" ] && "$md/prereqs/$arch"
+}
+
+parse_origin() {
+   local git_uri="$1"
+   [ -n "$git_uri" ] || LOGDIE 'no git URI available'
+   origin="${git_uri%#*}"
+   ref="${git_uri#*#}"
+   [ "x$ref" = "x$git_uri" ] && ref=
+   return 0
+}
+
+parse_opts() {
+   src_dir="$1"
+   cache_dir="$2"
+   env_dir="$3"
+   shift 3
+
+   git_uri="$DIBSPACK_GIT_URI"
+   work_dir="${DIBSPACK_WORK_DIR:="/app"}"
+   [ "x$DIBSPACK_GIT_DEBUG" = "x1" ] && set -v -x
+
+   local optname optval
+   while [ "$#" -gt 0 ] ; do
+      optname="$1"
+      shift
+      case "$optname" in
+         (--debug|-d)
+            set -v -x
+            ;;
+         (--no-debug|-D)
+            set +v +x
+            ;;
+         (--origin|-o)
+            [ "$#" -gt 0 ] || LOGDIE "stray option $optname"
+            git_uri="$1"
+            shift
+            ;;
+         (--work-dir|-w)
+            [ "$#" -gt 0 ] || LOGDIE "stray option $optname"
+            work_dir="$1"
+            shift
+            ;;
+         (*)
+            LOGDIE "unknown option $optname"
+            ;;
+      esac
+   done
+}
+
+main "$@"
+exit "$?"
