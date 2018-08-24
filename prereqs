@@ -46,7 +46,7 @@ parse_opts() {
             shift
             ;;
          (*)
-            LOGDIE "unnknown option $optname"
+            LOGDIE "unknown option $optname"
             ;;
       esac
    done

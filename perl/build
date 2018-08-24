@@ -1,13 +1,13 @@
 #!/bin/sh
 # vim: ft=sh sw=3 ts=3 sts=3 et ai tw=76 :
 
-. "$(dirname "$0")/../lib.sh"
-
 main() {
+   local md="$(dirname "$0")"
+   . "$md/../lib.sh"
+
    local src_dir cache_dir env_dir work_dir
    parse_opts "$@"
-   : ${work_dir:="${DIBSPACK_PERL_APP:-"$src_dir"}"}
-   local md="$(dirname "$0")"
+
    mkdir -p "$cache_dir"
 
    # fail fast, fail hard, possibly loud
@@ -41,6 +41,7 @@ parse_opts() {
    src_dir="$1" cache_dir="$2/perl" env_dir="$3"
    shift 3
 
+   work_dir="${DIBSPACK_WORK_DIR:-"$src_dir"}"
    local optname optval
    while [ "$#" -gt 0 ] ; do
       optname="$1"
@@ -336,3 +337,4 @@ save_build_environment() {
 }
 
 main "$@"
+exit "$?"
