@@ -31,7 +31,7 @@ LOGDIE() { FATAL "$*" ;  exit 1 ; }
 
 LOG()  { printf >&2 '%s\n' "$*" ; }
 
-architecture() { sed -n 's/^ID=//p' /etc/os-release ; }
+os_id() { sed -n 's/^ID=//p' /etc/os-release ; }
 
 is_detect() { [ "${1:-"$DIBSPACK_DETECT"}" = 'xdetect' ] ; }
 

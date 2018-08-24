@@ -1,13 +1,56 @@
 #!/bin/sh
-set -e
-. "$(dirname "$0")/lib.sh"
 
-src_dir="$1"
-step="${4:-"$DIBSPACK_STEP"}"
-[ -n "$step" ] || LOGDIE "step parameter is unknown"
+main() {
+   set -e
+   . "$(dirname "$0")/lib.sh"
 
-arch="${DIBSPACK_PREREQS_ARCH:-"$(architecture)"}"
-program="$src_dir/prereqs/$arch.$step"
+   # parse *these* options
+   local src_dir cache_dir env_dir work_dir os step
+   parse_opts "$@"
 
-# run
-"$program" "$@"
+   : ${os:="$(os_id)"}
+   local program="$work_dir/prereqs/$os"
+   [ -n "$step" ] && program="$program.$step"
+
+   # run
+   "$program" "$@"
+}
+
+parse_opts() {
+   src_dir="$1"
+   cache_dir="$2"
+   env_dir="$3"
+   shift 3
+
+   local optname optval
+   os="${DIBSPACK_OS}"
+   step="${DIBSPACK_STEP}"
+   work_dir="${DIBSPACK_WORK_DIR:-"$src_dir"}"
+   while [ "$#" -gt 0 ] ; do
+      optname="$1"
+      shift
+      case "$optname" in
+         (--os)
+            [ "$#" -gt 0 ] || LOGDIE "no value for option $optname"
+            os="$1"
+            shift
+            ;;
+         (-s|--step)
+            [ "$#" -gt 0 ] || LOGDIE "no value for option $optname"
+            step="$1"
+            shift
+            ;;
+         (-w|--work-dir)
+            [ "$#" -gt 0 ] || LOGDIE "no value for option $optname"
+            work_dir="$1"
+            shift
+            ;;
+         (*)
+            LOGDIE "unnknown option $optname"
+            ;;
+      esac
+   done
+}
+
+main "$@"
+exit "$?"

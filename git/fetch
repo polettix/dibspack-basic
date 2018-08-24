@@ -22,7 +22,7 @@ ref="${git_uri#*#}"
 INFO "origin: $origin (ref: $ref)"
 
 # ensure_prereqs are installed, most notably git should be there
-arch="$(architecture)"
+arch="$(os_id)"
 [ -x "$md/prereqs/$arch" ] && "$md/prereqs/$arch"
 
 # work in $src_dir from now on

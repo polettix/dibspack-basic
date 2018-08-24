@@ -8,7 +8,7 @@ main() {
    . "$md/../lib.sh"
 
    # parse options and populate these variables
-   local src_dir cache_dir env_dir work_dir git_uri owner
+   local src_dir cache_dir env_dir work_dir git_uri owner os
    parse_opts "$@"
 
    # parse Git URI in $git_uri and extract origin and ref
@@ -31,8 +31,8 @@ main() {
 
 ensure_prereqs() {
    # ensure_prereqs are installed, most notably git should be there
-   arch="$(architecture)"
-   [ -x "$md/prereqs/$arch" ] && "$md/prereqs/$arch"
+   : ${os:="$(os_id)"}
+   [ -x "$md/prereqs/$os" ] && "$md/prereqs/$os"
 }
 
 parse_origin() {
@@ -51,6 +51,8 @@ parse_opts() {
    shift 3
 
    git_uri="${DIBSPACK_GIT_URI:="$src_dir"}"
+   os="$DIBSPACK_OS"
+   owner="$DIBSPACK_OWNER"
    work_dir="${DIBSPACK_WORK_DIR:="/app"}"
    [ "x$DIBSPACK_GIT_DEBUG" = "x1" ] && set -v -x
 
@@ -66,17 +68,22 @@ parse_opts() {
             set +v +x
             ;;
          (--origin|-o)
-            [ "$#" -gt 0 ] || LOGDIE "stray option $optname"
+            [ "$#" -gt 0 ] || LOGDIE "no value for option $optname"
             git_uri="$1"
             shift
             ;;
          (--owner|-O)
-            [ "$#" -gt 0 ] || LOGDIE "stray option $optname"
+            [ "$#" -gt 0 ] || LOGDIE "no value for option $optname"
             owner="$1"
             shift
             ;;
+         (--os)
+            [ "$#" -gt 0 ] || LOGDIE "no value for option $optname"
+            os="$1"
+            shift
+            ;;
          (--work-dir|-w)
-            [ "$#" -gt 0 ] || LOGDIE "stray option $optname"
+            [ "$#" -gt 0 ] || LOGDIE "no value for option $optname"
             work_dir="$1"
             shift
             ;;
