@@ -1,3 +1,9 @@
 #!/bin/sh
-[ -r "$HOME/.profile" ] && . "$HOME/.profile"
+if [ -r "$HOME/.profile" ] ; then
+   . "$HOME/.profile"
+elif [ -d "$HOME/.profile.d" ] ; then
+   for file in "$HOME"/.profile.d/*.sh ; do
+      . "$file"
+   done
+fi
 exec "$@"
