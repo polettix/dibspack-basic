@@ -151,6 +151,11 @@ parse_opts() {
             GROUP_ID="$( stat -c '%g' "$1"  )"
             shift
             ;;
+         (--source|-s)
+            [ "$#" -gt 0 ] || die "no value for $optname"
+            . "$1"
+            shift
+            ;;
          (--uid|-U)
             [ "$#" -gt 0 ] || die "no value for $optname"
             USER_ID="$1"
