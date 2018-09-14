@@ -1,6 +1,6 @@
 #!/bin/sh
 set -e
-src="${4:-"$1"}"
+src="${4:-"$2/app"}"
 dst="${5:-"/app"}"
 "$(dirname "$0")/../lib.sh" stubborn_rm_rf "$dst"
 cp -pPR "$src" "$dst"

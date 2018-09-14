@@ -22,9 +22,11 @@ parse_opts() {
    env_dir="$3"
    shift 3
 
+   export_enviles_from "$env_dir/iles" DIBS_STEP
+
    local optname optval
    os="${DIBSPACK_OS}"
-   step="${DIBSPACK_STEP}"
+   step="${DIBSPACK_STEP:-"$DIBS_STEP"}"
    work_dir="${DIBSPACK_WORK_DIR:-"$src_dir"}"
    while [ "$#" -gt 0 ] ; do
       optname="$1"

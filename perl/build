@@ -9,6 +9,7 @@ main() {
    parse_opts "$@"
 
    mkdir -p "$cache_dir"
+   [ -n "$HOME" -a -w "$HOME" ] || export HOME=/tmp
 
    # fail fast, fail hard, possibly loud
    set -e

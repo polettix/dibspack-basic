@@ -21,6 +21,8 @@ exit 0;
 
    sub main {
       my ($src_dir, $cache_dir, $env_dir, @args) = @_;
+      import_enviles($env_dir);
+
       %config = (
          debug      => $ENV{DIBSPACK_INSTALL_DEBUG}      || 0,
          dibsignore => $ENV{DIBSPACK_INSTALL_DIBSIGNORE} || '.dibsignore',
@@ -32,10 +34,11 @@ exit 0;
       GetOptionsFromArray(\@args, \%config, qw< debug|D! dibsignore|f=s
          dst|d=s preserve|p! print|P! src|s=s >);
 
-      my $step = defined($ENV{DIBSPACK_STEP}) ? $ENV{DIBSPACK_STEP}
-         : @args == 0 ? undef
-         : @args == 1 ? $args[0]
-         :              die "unknown parameters (@args)";
+      die "unknown parameters (@args)" if scalar(@args) > 1;
+      my $step = scalar(@args)          ? $args[0]
+         : defined($ENV{DIBSPACK_STEP}) ? $ENV{DIBSPACK_STEP}
+         : defined($ENV{DIBS_STEP})     ? $ENV{DIBS_STEP}
+         :                                undef;
       if ((! defined $step) || (! length $step)) {
          $config{src} = default_value($config{src}, $src_dir);
          $config{dst} = default_value($config{dst}, '/app');
@@ -72,6 +75,17 @@ exit 0;
 
       # last, copy permissions for top directory
       copy_permissions($src, $dst);
+   }
+}
+
+sub import_enviles {
+   my $env_dir = path(shift, 'iles');
+   for my $file ($env_dir->children) {
+      next unless $file->is_file;
+      my $key = $file->basename;
+      next unless $key =~ m{\A DIBS }mxs;
+      next if exists $ENV{$key};
+      $ENV{$key} = $file->slurp_raw;
    }
 }
 

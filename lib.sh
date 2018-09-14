@@ -80,6 +80,28 @@ encode_array_sed() {
    echo " "
 }
 
+export_envile() {
+   local name="$(basename "$1")"
+   local value="$(escape_var_value "$(cat "$1"; printf x)")"
+   eval "export $name=${value%??}'"
+}
+
+export_enviles_from() {
+   local base="${1%/}" file f
+   shift
+   for f in "$@" ; do
+      file="$base/$f"
+      [ -e "$file" ] && export_envile "$file"
+   done
+}
+
+export_all_enviles_from() {
+   local base="${1%/}" file
+   for file in "$base"/* ; do
+      [ -e "$file" ] && export_envile "$file"
+   done
+}
+
 indent() { sed -e 's/^/       /' ; }
 
 cleanup_dir() {
