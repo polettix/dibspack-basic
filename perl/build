@@ -54,6 +54,11 @@ parse_opts() {
          (--cpanm-verbose)
             DIBSPACK_CPANM_VERBOSE='' # does not set "--quiet"
             ;;
+         (-H|--home)
+            [ "$#" -gt 0 ] || LOGDIE "no value for option $optname"
+            export HOME="$1"
+            shift
+            ;;
          (--no-cpanm-test)
             DIBSPACK_CPANM_TEST='--notest'
             ;;
