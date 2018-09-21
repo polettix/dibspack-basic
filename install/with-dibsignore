@@ -53,8 +53,10 @@ exit 0;
             path($cache_dir, 'app')->stringify);
          $config{dst} = default_value($config{dst}, '/app');
       }
-      else {
-         die "unknown parameter ($step)\n";
+      else { # just like not defined...
+         warn "no defaults for step '$step', ignoring\n";
+         $config{src} = default_value($config{src}, $src_dir);
+         $config{dst} = default_value($config{dst}, '/app');
       }
 
       my ($dst, $src) = map { path($_)->absolute } @config{qw< dst src >};
