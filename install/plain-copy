@@ -1,6 +1,8 @@
 #!/bin/sh
 set -e
-src="${4:-"$2/app"}"
-dst="${5:-"/app"}"
-"$(dirname "$0")/../lib.sh" stubborn_rm_rf "$dst"
+. "$(dirname "$0")/../lib.sh"
+export_all_enviles
+src="${1:-"$DIBS_DIR_SRC/app"}"
+dst="${2:-"/app"}"
+stubborn_rm_rf "$dst"
 cp -pPR "$src" "$dst"

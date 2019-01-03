@@ -20,8 +20,11 @@ exit 0;
    sub PRINT()    { return $config{print}    }
 
    sub main {
-      my ($src_dir, $cache_dir, $env_dir, @args) = @_;
-      import_enviles($env_dir);
+
+      my @args = @_;
+      import_enviles('.');
+      my ($src_dir, $cache_dir, $env_dir) =
+         @ENV{qw< DIBS_DIR_SRC DIBS_DIR_CACHE DIBS_DIR_ENV >};
 
       %config = (
          debug      => $ENV{DIBSPACK_INSTALL_DEBUG}      || 0,
@@ -81,7 +84,7 @@ exit 0;
 }
 
 sub import_enviles {
-   my $env_dir = path(shift, 'iles');
+   my $env_dir = path(shift);
    for my $file ($env_dir->children) {
       next unless $file->is_file;
       my $key = $file->basename;
