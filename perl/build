@@ -35,7 +35,7 @@ main() {
    [ -z "$DIBSPACK_SAVE_ENV" ] \
       || save_build_environment "$work_dir" "$DIBSPACK_SAVE_ENV"
 
-   echo build_complete
+   printf '%s\n' build_complete
 }
 
 parse_opts() {
@@ -185,13 +185,13 @@ __build_install_perl() {
 
    # download and extract new one
    local url="$(cat .perl-archive)"
-   echo "getting perl from $url"
+   printf '%s\n' "getting perl from $url"
    curl -s -L "$url" | tar xzf -
 
    # move to target place, then make hash-bangs general
    local archive="${url##*/}"
    local version="${archive%.tar*}"
-   echo "archive is '$archive', extracted directory '$version'"
+   printf '%s\n' "archive is '$archive', extracted directory '$version'"
    mv "$version" 'local/perl'
    __perl_script_relocate 'local/perl/bin'/*
 
@@ -200,7 +200,7 @@ __build_install_perl() {
 }
 
 __build_install_perl_restore_system_perl() {
-   echo 'restoring system perl'
+   printf '%s\n' 'restoring system perl'
    rm -rf local/{bin,lib,perl}
 }
 
@@ -246,7 +246,7 @@ __build_install_dependencies() {
 }
 
 __build_install_dependencies_gitpanm() {
-   echo "detected gitpanfile"
+   printf '%s\n' "detected gitpanfile"
    local gpm_dir="$src_dir/local/gitpanm"
    mkdir -p "$gpm_dir"
 
@@ -321,14 +321,14 @@ __build_install_dependencies_cpanm() {
 
 ########################################################################
 __main_print_dibspack_details() {
-   echo "environment (sorted)"
+   printf '%s\n' "environment (sorted)"
    env | sort
-   echo ''
-   echo "src_dir [$src_dir]"
+   printf '%s\n' ''
+   printf '%s\n' "src_dir [$src_dir]"
    ls -l "$src_dir"
-   echo "cache_dir [$cache_dir]"
+   printf '%s\n' "cache_dir [$cache_dir]"
    ls -l "$cache_dir"
-   echo "env_dir   [$env_dir]"
+   printf '%s\n' "env_dir   [$env_dir]"
    ls -l "$env_dir"
 }
 
@@ -342,5 +342,6 @@ save_build_environment() {
    set > "$target/set.sh"
 }
 
+exec 1>&2
 main "$@"
 exit "$?"
