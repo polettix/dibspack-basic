@@ -96,9 +96,12 @@ export_enviles_from() {
 }
 
 export_all_enviles_from() {
-   local base="${1%/}" file
+   local base="${1%/}" file varname
    for file in "$base"/* ; do
-      [ -e "$file" ] && export_envile "$file"
+      varname="$(basename "$file")"
+      if [ "${varname#*.}" = "$varname" ] && [ -f "$file" ] ; then
+         export_envile "$file"
+      fi
    done
 }
 
