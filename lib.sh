@@ -105,6 +105,10 @@ export_all_enviles_from() {
    done
 }
 
+export_all_enviles() {
+   export_all_enviles_from "${DIBS_DIR_ENVILE:-"."}"
+}
+
 indent() { sed -e 's/^/       /' ; }
 
 cleanup_dir() {
