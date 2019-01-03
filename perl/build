@@ -39,8 +39,10 @@ main() {
 }
 
 parse_opts() {
-   src_dir="$1" cache_dir="$2/perl" env_dir="$3"
-   shift 3
+   export_all_enviles
+   src_dir="$DIBS_DIR_SRC"
+   cache_dir="$DIBS_DIR_CACHE/perl"
+   env_dir="$DIBS_DIR_ENV"
 
    work_dir="${DIBSPACK_WORK_DIR:-"$src_dir"}"
    local optname optval
