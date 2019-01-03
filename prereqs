@@ -4,8 +4,10 @@ main() {
    set -e
    . "$(dirname "$0")/lib.sh"
 
+   export_all_enviles_from . $EXPORTED_VARS
+
    # parse *these* options
-   local src_dir cache_dir env_dir work_dir os step
+   local work_dir os step
    parse_opts "$@"
 
    : ${os:="$(os_id)"}
@@ -17,17 +19,10 @@ main() {
 }
 
 parse_opts() {
-   src_dir="$1"
-   cache_dir="$2"
-   env_dir="$3"
-   shift 3
-
-   export_enviles_from "$env_dir/iles" DIBS_STEP
-
    local optname optval
-   os="${DIBSPACK_OS}"
-   step="${DIBSPACK_STEP:-"$DIBS_STEP"}"
-   work_dir="${DIBSPACK_WORK_DIR:-"$src_dir"}"
+   os="$DIBS_OS"
+   step="$DIBS_STEP"
+   work_dir="${PACK_WORK_DIR:-"$DIBS_DIR_SRC"}"
    while [ "$#" -gt 0 ] ; do
       optname="$1"
       shift
