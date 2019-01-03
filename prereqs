@@ -6,47 +6,43 @@ main() {
 
    export_all_enviles_from . $EXPORTED_VARS
 
-   # parse *these* options
-   local work_dir os step
-   parse_opts "$@"
-
-   : ${os:="$(os_id)"}
-   local program="$work_dir/prereqs/$os"
-   [ -n "$step" ] && program="$program.$step"
-
-   # run
-   "$program" "$@"
-}
-
-parse_opts() {
+   # define and parse *these* options
+   local os="$DIBS_OS"
+   local step="$DIBS_PREREQS"
+   local work_dir="${DIBS_WORK_DIR:-"$DIBS_DIR_SRC"}"
    local optname optval
-   os="$DIBS_OS"
-   step="$DIBS_STEP"
-   work_dir="${PACK_WORK_DIR:-"$DIBS_DIR_SRC"}"
    while [ "$#" -gt 0 ] ; do
       optname="$1"
       shift
       case "$optname" in
+         (--)
+            break
+            ;;
          (--os)
             [ "$#" -gt 0 ] || LOGDIE "no value for option $optname"
             os="$1"
             shift
             ;;
-         (-s|--step)
-            [ "$#" -gt 0 ] || LOGDIE "no value for option $optname"
-            step="$1"
-            shift
-            ;;
-         (-w|--work-dir)
+         (-w|--workdir|--work-dir)
             [ "$#" -gt 0 ] || LOGDIE "no value for option $optname"
             work_dir="$1"
             shift
             ;;
-         (*)
+         (-*)
             LOGDIE "unknown option $optname"
+            ;;
+         (*)
+            step="$optname"
             ;;
       esac
    done
+
+   : ${os:="$(os_id)"}
+   local program="$work_dir/prereqs/$os"
+   [ -z "$step" ] || program="$program.$step"
+
+   # run
+   "$program" "$@"
 }
 
 exec 1>&2
