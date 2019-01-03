@@ -3,8 +3,7 @@
 main() {
    set -e
    . "$(dirname "$0")/lib.sh"
-
-   export_all_enviles_from . $EXPORTED_VARS
+   export_all_enviles
 
    # define and parse *these* options
    local os="$DIBS_OS"
