@@ -49,5 +49,6 @@ parse_opts() {
    done
 }
 
+exec 1>&2
 main "$@"
 exit "$?"
