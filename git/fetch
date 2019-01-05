@@ -1,14 +1,16 @@
 #!/bin/sh
-src_dir="$1"
-cache_dir="$2"
-env_dir="$3"
-git_uri="${4:-"$DIBSPACK_GIT_URI"}"
 
 # everything is an error, every operation is logged
 set -e
 
 md="$(dirname "$0")"
 . "$md/../lib.sh"
+export_all_enviles
+
+src_dir="$DIBS_DIR_SRC"
+cache_dir="$DIBS_DIR_CACHE"
+env_dir="$DIBS_DIR_ENV"
+git_uri="${1:-"$DIBSPACK_GIT_URI"}"
 
 [ -n "$git_uri" ] || LOGDIE 'no git URI available'
 

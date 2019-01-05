@@ -6,6 +6,7 @@ main() {
    # import stuff from library of shell functions
    local md="$(dirname "$0")"
    . "$md/../lib.sh"
+   export_all_enviles
 
    # parse options and populate these variables
    local src_dir cache_dir env_dir work_dir git_uri owner os
@@ -45,10 +46,9 @@ parse_origin() {
 }
 
 parse_opts() {
-   src_dir="$1"
-   cache_dir="$2"
-   env_dir="$3"
-   shift 3
+   src_dir="$DIBS_DIR_SRC"
+   cache_dir="$DIBS_DIR_CACHE"
+   env_dir="$DIBS_DIR_ENV"
 
    git_uri="${DIBSPACK_GIT_URI:="$src_dir"}"
    os="$DIBSPACK_OS"
@@ -94,5 +94,6 @@ parse_opts() {
    done
 }
 
+exec >&2
 main "$@"
 exit "$?"
