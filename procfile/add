@@ -2,6 +2,7 @@
 set -e
 md="$(dirname "$0")"
 . "$md/../lib.sh"
+export_all_enviles
 
 procfile_runner="${DIBSPACK_PROCFILE_RUNNER:-"/procfilerun"}"
 cp "$md/procfilerun" "$procfile_runner"

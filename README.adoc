@@ -12,12 +12,20 @@ This repository contains some basic dibspacks that can be used with
 - ... put a `git` reference to the main repository, e.g.:
 
 ----
-definitions:
+packs:
   foo:
-    dibspacks:
-      - type: git
-        origin: https://github.com/polettix/dibspack-basic
-        path: name-of-dibspack
+    type: git
+    origin: https://github.com/polettix/dibspack-basic
+----
+
+- ... use it from a stroke:
+
+----
+actions:
+    some-stroke:
+        pack: foo
+        path: perl/build
+        user: ubuntu
 ----
 
 
@@ -27,12 +35,11 @@ toc::[]
 
 This dibspack helps checking out a git repository. It is called like this:
 
-    git/fetch src_dir cache_dir env_dir [git_uri]
+    git/fetch [git_uri]
 
-where the first three parameters are the standard dibspack ones, and the
-fourth optional parameter is a URI where the code can be found. In case this
-parameters is absent, environment variable `DIBSPACK_GIT_URI` is used instead
-(or an exception is thrown if this is not defined properly too).
+where the optional parameter is a URI where the code can be found. In case
+this parameters is absent, environment variable `DIBSPACK_GIT_URI` is used
+instead (or an exception is thrown if this is not defined properly too).
 
 The git URI can include a *fragment* section, interpreted as whatever comes
 after the first dash character `#`. When present, the fragment represents the
@@ -40,11 +47,11 @@ ref to check out; by default, the `master` branch is considered. This can help
 pinning a specific revision and avoid surprises due to updates.
 
 The checkout is performed in the `src_dir` directory, i.e. the directory
-passed as the first positional parameters. If this directory already contains
-a `.git` sub-directory and environment variable `DIBSPACK_GIT_REFRESH` is set
-to `1` (exactly), then the current contents will be used for a `fetch` from
-the current `origin` remote. Otherwise, the `src_dir` is wiped out completely
-and the remote is cloned to get a fresh copy.
+passed via the `DIBS_DIR_SRC` envile. If this directory already contains a
+`.git` sub-directory and environment variable `DIBSPACK_GIT_REFRESH` is set to
+`1` (exactly), then the current contents will be used for a `fetch` from the
+current `origin` remote. Otherwise, the `src_dir` is wiped out completely and
+the remote is cloned to get a fresh copy.
 
 It is possible to set variable `DIBSPACK_GIT_DEBUG` to `1` (exactly) and
 activate the shell's capabilities for debugging (options `-x` and '-v').
@@ -52,14 +59,15 @@ activate the shell's capabilities for debugging (options `-x` and '-v').
 Example usage in a `dibs.yml` file:
 
 ----
-definitions:
+packs:
   foo:
-    dibspacks:
-      - type:   git
-        origin: https://github.com/polettix/dibspack-basic
-        path:   git/fetch
-        args:
-          - https://github.com/polettix/sample-mojo#844f256
+    type:   git
+    origin: https://github.com/polettix/dibspack-basic
+actions:
+  bar:
+    pack: foo
+    path: git/fetch
+    args: ['https://github.com/polettix/sample-mojo#844f256']
 ----
 
 This dibspack requires `git` to be available in the container; it contains
@@ -72,10 +80,11 @@ system tools inside the container (e.g. Alpine, Debian, ...).
 This buildpack copies files from a source to a destination. It is invoked like
 this:
 
-    install/plain-copy src_dir cache_dir env_dir source destination
+    install/plain-copy source destination
 
-If `source` is missing or empty, `src_dir` is used instead. If `destination`
-is empty, path `/app` is used instead.
+If `source` is missing or empty, `src_dir` is used instead (according to the
+contents of envile `DIBS_DIR_SRC`). If `destination` is empty, path `/app` is
+used instead.
 
 This dibspack tries hard to get rid of `destination` before starting the copy.
 
@@ -85,15 +94,15 @@ source.
 Example usage in a `dibs.yml` file:
 
 ----
-definitions:
+packs:
   foo:
-    dibspacks:
-      - type:   git
-        origin: https://github.com/polettix/dibspack-basic
-        path:   install/plain-copy
-        args:
-          - path_cache: '/app'
-          - '/app'
+    type:   git
+    origin: https://github.com/polettix/dibspack-basic
+actions:
+  bar:
+    pack: foo
+    path: install/plain-copy
+    args: [{path_cache: '/app'}, '/app']
 ----
 
 
@@ -106,7 +115,7 @@ building/testing artifacts but are then unneeded in the normal runtime phase.
 
 It is invoked like this:
 
-    install/with-dibspack src_dir cache_dir env_dir [options...] [step]
+    install/with-dibspack [options...] [step]
 
 This program is a Perl program and supports flexible __GNU-style__ parameters:
 
@@ -139,12 +148,12 @@ The optional parameter `step` is a shorthand to set fallback defaults for the
 source and destination directories, namely:
 
 - if it takes value `build`, then the source eventually defaults to `src_dir`
-  (i.e. the first positional parameter) and the destination to sub-directory
-  `app` inside the cache directory (i.e. the second parameter).
+  (i.e. the content of envile `DIBS_DIR_SRC`) and the destination to
+  sub-directory `app` inside the cache directory (i.e. the second parameter).
 
 - if it takes value `bundle', then the source eventuall defaults to
-  sub-directory `app` inside the cache directory (i.e. the second parameter)
-  and the destination defaults to `/app`.
+  sub-directory `app` inside the cache directory (i.e. the content of envile
+  `DIBS_DIR_CACHE`) and the destination defaults to `/app`.
 
 - any other value throws an exception.
 
@@ -167,13 +176,13 @@ This dibspack aims at _compiling_ Perl code. As a matter of fact, it only
 makes sure that prerequisites modules are properly installed, e.g. via `cpanm`
 or `carton`. It is invoked like this:
 
-    perl/build src_dir cache_dir env_dir [work_dir]
+    perl/build [work_dir]
 
 When set, `work_dir` indicates that installations should be done "from within"
 the specific directory. To do this, `work_dir` is created as a symlink to
-`src_dir` and then the rest of operations performed from there. If not set, it
-defaults to the environment variable `DIBSPACK_PERL_APP` or, as a fallback,
-the string `/app`.
+`src_dir` (i.e. the content of envile `DIBS_DIR_SRC`) and then the rest of
+operations performed from there. If not set, it defaults to the environment
+variable `DIBSPACK_PERL_APP` or, as a fallback, the string `/app`.
 
 The dibspack saves some configurations inside the target directory
 (`work_dir`/`src_dir`) in file `.profile/10.perl-env.sh` (directory `.profile`
@@ -199,41 +208,52 @@ Other environment variables can influence the dibspack execution:
 - `DIBSPACK_CPANM_TEST` sets or disable testing of modules. Defaults to
   `--notest`.
 
+The outcome of compilation is saved in the cache (i.e. the directory saved in
+envile `DIBS_DIR_CACHE`), inside sub-directory `perl/local`.
 
 == `prereqs`
 
 This dibspack supports in the installation of OS-specific
 packages/prerequisites. It is invoked like this:
 
-    prereqs src_dir cache_dir env_dir [step] [detect]
+    prereqs [--os OS] [-w|--workdir|--work-dir DIR] [step]
 
-You are supposed to have a `prereqs` sub-directory in your source tree, and
-have files like this inside (executable):
+The source project is supposed to have a `prereqs` sub-directory, and have
+executable files like this inside:
 
+----
+prereqs/
     alpine.build
     alpine.bundle
     debian.build
     debian.bundle
     debian.some-other-step...
+----
 
 It works like this:
 
-- it establishes the platform's architecture either through environment
-  variable `DIBSPACK_PREREQS_ARCH` or looking at the `ID` inside
-  `/etc/os-release`
-- it runs file `$src_dir/prereqs/$architecture.$step`
+- loads all enviles as environment variables;
+- it establishes the platform's os based on command-line option `--os`,
+  environment variable `DIBS_OS`, or looking at the `ID` inside
+  `/etc/os-release`;
+- it establishes the work dir base on command-line option `--workdir` (or its
+  aliases), on environment variable `DIBS_WORK_DIR` or, as a fallback, on the
+  contents of envile `DIBS_DIR_SRC`;
+- it establishes a step name from the command line or from environment
+  variable `DIBS_PREREQS` (leaving it blank by default);
+- it runs file `$work_dir/prereqs/$os.$step` if the step is defined, otherwise
+  it run `$work_dir/prereqs/$os`.
 
-You MUST provide the step name in some way, either on the command line or
-through environment variable `DIBSPACK_STEP`.
 
 == `procfile/add`
 
 This adds a simple handler for Procfile-like configurations support. This
-means that you can put a `Procfile` file inside your application directory,
-and it will hopefully honored (it also requires you to set the associated
-program as the entry point of your container).
+means that it's possible to put a `Procfile` file inside the application
+directory, and it will hopefully honored (it also requires to set the
+associated program as the entry point of the generated container image).
 
-This dibspack is controlled by environment variables with sensible defaults:
+This dibspack is controlled by environment variables (or enviles, all of them
+are loaded) with sensible defaults:
 
 - `DIBSPACK_PROCFILE_DEFAULT`: sets the default process to run, defaults to
   `web`.
@@ -244,36 +264,37 @@ This dibspack is controlled by environment variables with sensible defaults:
 - `DIBSPACK_PROCFILE_SPEC`: sets the position of the `Procfile` file, defaults
   to `/app/Procfile`.
 
-As anticipated, to use this dibspack effectively you also have to ensure that
-your `dibs.yml` configuration file sets the right entry point and command
+As anticipated, to use this dibspack effectively it is necessary to ensure
+that the `dibs.yml` configuration file sets the right entry point and command
 while saving the image, like this:
 
 ----
-definitions:
-  # ... definitions for build..., then
+packs:
+  foo:
+    type:   git
+    origin: https://github.com/polettix/dibspack-basic
+actions:
   bundle:
-    from: some:image
-    keep: yes
-    entrypoint:
-        - /procfilerun
-    cmd: []
-    dibspacks:
-      - type:   git
-        origin: https://github.com/polettix/dibspack-basic
-        path:   procfile/add
+    - from: 'some-image:latest'
+    - name: add procfile
+      pack: foo
+      path: procfile/add
+      commit:
+        entrypoint: ['/procfilerun']
+        cmd: []
+    - tags: 'new-image:1.0'
     # ...
 ----
 
 == `shellrun`
 
-This dibspack is a swiss-army knife that allows you to run shell commands. It
-is invoked like this:
+This dibspack is a swiss-army knife that allows running multiple shell
+commands. It is invoked like this:
 
-    shellrun src_dir cache_dir env_dir [command1 [command2 [...]]]
+    shellrun [command1 [command2 [...]]]
 
-Each argument from the fourth on is a shell command that is run "plainly". For
-example, if the argument is `echo ciao a tutti`, then the following is
-executed:
+Each argument is a shell command that is run "plainly". For example, if the
+argument is `echo ciao a tutti`, then the following is executed:
 
     echo ciao a tutti
 
@@ -282,14 +303,15 @@ and so on.
 Example usage:
 
 ----
-definitions:
+packs:
+  foo:
+    type:   git
+    origin: https://github.com/polettix/dibspack-basic
+actions:
   foobar:
-    dibspacks:
-      - type:   git
-        origin: https://github.com/polettix/dibspack-basic
-        path:   shellrun
-        args:
-          - "printf '%s\n' 'whatever you want'"
-          - 'ls -l /'
-          # ...
+    path:   shellrun
+    args:
+      - "printf '%s\n' 'whatever you want'"
+      - 'ls -l /'
+      # ...
 ----
