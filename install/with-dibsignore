@@ -113,14 +113,30 @@ sub stubborn_rm_rf {
    $root->remove_tree;
 }
 
+sub path_to_dibsignore {
+   my ($root, $dibsignore) = @_;
+   return $dibsignore if $dibsignore->is_absolute;
+   return $root->child($dibsignore);
+}
+
 sub traverse {
    my %args = @_;
    my @mcs = @{$args{mcs} || []};
    my $root = $args{root};
    plog("traversing '$root'");
-   my $di = $root->child($args{dibsignore});
-   push @mcs, [$root, build_gitignore_matcher([$di->lines({chomp => 1})])]
-      if $di->exists;
+
+   if (exists $args{dibsignore}) {
+      my $di = path($args{dibsignore});
+      if ($di->is_absolute) {
+         delete $args{dibsignore}; # absolute only from root-root
+      }
+      else {
+         $di = $root->child($args{dibsignore});
+      }
+      push @mcs, [$root, build_gitignore_matcher([$di->lines({chomp => 1})])]
+        if $di->exists;
+   }
+
    FILE:
    for my $src ($root->children) {
       my $rel = $src->relative($args{src_root});
@@ -149,6 +165,7 @@ sub traverse {
          }
       }
    }
+
    return;
 }
 
