@@ -315,3 +315,6 @@ actions:
       - 'ls -l /'
       # ...
 ----
+
+For simplicity, all standard output is redirected to standard error, so that
+execution of command appears in the run log of `dibs`.
