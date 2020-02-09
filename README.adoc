@@ -5,6 +5,8 @@
 :dibs: https://github.com/polettix/dibs
 :git: https://git-scm.com/
 :cpanm: https://metacpan.org/pod/cpanm
+:su-exec: https://github.com/ncopa/su-exec
+:alpine: https://www.alpinelinux.org/
 
 This repository contains some basic dibspacks that can be used with
 {dibs}[dibs]. To use them, you can...
@@ -28,6 +30,8 @@ actions:
         user: ubuntu
 ----
 
+But there's more: some parts in this repository are actually aimed at being
+*included* inside the target containers, e.g. to smooth some sharp edges.
 
 toc::[]
 
@@ -318,3 +322,180 @@ actions:
 
 For simplicity, all standard output is redirected to standard error, so that
 execution of command appears in the run log of `dibs`.
+
+== `wrapexec/install`
+
+Within `wrapexec`, this is actually the only _dibspack_. Its goal is to put
+other programs in `wrapexec` inside the root directory of the target container
+image, so that it can be later used.
+
+Just pass the list of the other programs to install in the `args`.
+
+Example usage:
+
+----
+packs:
+  foo:
+    type:   git
+    origin: https://github.com/polettix/dibspack-basic
+actions:
+  foobar:
+    path: wrapexec/install
+    args:
+      - procexec
+      - suexec
+----
+
+== `wrapexec/profilexec`
+
+This is a wrapper intended for inclusion inside the target container image.
+It's easier to read what it does directly:
+
+----
+if [ -r "$HOME/.profile" ] ; then
+   . "$HOME/.profile"
+elif [ -d "$HOME/.profile.d" ] ; then
+   for file in "$HOME"/.profile.d/*.sh ; do
+      . "$file"
+   done
+fi
+exec "$@"
+----
+
+It ensures that either `$HOME/.profile` or whatever is in `$HOME/.profile.d`
+is sourced before running the _real_ command that is passed on the command
+line. This allows saving pre-condition stuff (like environment variables) in a
+file or a bunch of files, then set the program as the `entrypoint`.
+
+Example:
+
+----
+packs:
+  foo:
+    type:   git
+    origin: https://github.com/polettix/dibspack-basic
+actions:
+  install-procexec:
+    path: wrapexec/install
+    args:
+      - procexec
+  some-sketch:
+    # ...
+    - name: some final stroke
+      # ...
+      commit:
+        entrypoint: ['/procexec']
+        cmd: ['/bin/sh', '-l']
+----
+
+Now, whatever you pass as the _command_ when running this container, will be
+actually executed through `procexec`.
+
+== `wrapexec/suexec`
+
+When building container images to distribute software for the command line,
+many times there's a mismatch between the user that the software runs as
+_within the container_ and the user that runs the container _from the host_.
+
+`wrapexec/suexec` is meant to address the mismatch. It's intended to be
+included inside the container image (e.g. through `wrapexec/install`) and then
+invoked by default setting it as the `entrypoint`, like this:
+
+----
+packs:
+  foo:
+    type:   git
+    origin: https://github.com/polettix/dibspack-basic
+actions:
+  install-procexec:
+    path: wrapexec/install
+    args:
+      - procexec
+  some-sketch:
+    # ...
+    - name: some final stroke
+      # ...
+      commit:
+        entrypoint: ['/suexec', '--reference', '/mnt', '--']
+        cmd: ['/bin/sh', '-l']
+----
+
+In this example, `suexec` sets the user and group to match the owner of
+`/mnt`, so that when the container is run like this:
+
+----
+$ docker run -v "$PWD:/mnt" ...
+----
+
+the user that the command will be run as is the same as the owner of `$PWD` in
+the _host_.
+
+The generic invocation of `wrapexec/suexec` is as follows:
+
+----
+/suexec [options] -- command [arguments]
+----
+
+Options are:
+
+`--also|-a` _group_::
+add _group_ to the list of additional groups for the target user
+
+`--also-for|-A` _path-in-container_::
+add the group associated to file at _path-in-container_ to the list of
+additional groups for the target user
+
+`--gid|-G` _group-id_::
+
+set the main group identifier for the target user (defaults to environment
+variable `GROUP_ID`)
+
+`--group|-g` _group-name_::
+set the main group name for the target user (defaults to environment variable
+`GROUP_NAME`)
+
+`--home|-h`::
+
+set the home directory path (defaults to environment variable `HOME_DIR`);
+
+`--os` _os-name_::
+
+set the name of the Linux distribution. This is used to figure out which tools
+are available for manipulating `/etc/passwd` and `/etc/group` (defaults to
+environment variable `OS` or is auto-detected)
+
+`--reference|-r` _path-in-container_::
+
+set the user identifier and group identifier from the owner and group of the
+file at _path-in-container_. When you bind-mount a directory in the container,
+this is probably the most straightforward way to set the proper `uid`/`gid`
+pair for the user that should run the `command` inside the container.
+
+`--source|-s` _path-in-container_::
+
+source (via `.`) the file at _path-in-container_, which might e.g. contain a
+few environment variables to set different defaults
+
+`--uid|-U` _user-id_::
+
+set the user identifier for the target user (defaults to environment variable
+`USER_ID`)
+
+`--user|-u` _user-name_::
+
+set the user name for the target user (defaults to environment variable
+`USER_NAME`)
+
+After analyzing command-line options, the program tries its best to figure out
+the missing parts, e.g. a username or a main group name.
+
+After setting up the container with the options above, `wrapexec/suexec` runs
+{su-exec}[su-exec] with the provided `command` and `arguments`. This allows
+executing the `command` with the right user, while at the same time doing a
+proper `exec` instead of putting any process in the middle (thus also
+guaranteeing that the exit code of `command` is correctly propagated as the
+return value from the container).
+
+You have to "independently" ensure that {su-exec}[su-exec] is present in the
+container image. As an example, {Alpine Linux}[alpine] includes the `su-exec`
+package for it.
