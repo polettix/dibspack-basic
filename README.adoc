@@ -106,7 +106,7 @@ actions:
 ----
 
 
-== `install/with-dibspack`
+== `install/with-dibsignore`
 
 This buildpack copies files from a source to a destination, pruning those that
 match patterns defined inside a file. This allows selecting only part of the
@@ -115,7 +115,7 @@ building/testing artifacts but are then unneeded in the normal runtime phase.
 
 It is invoked like this:
 
-    install/with-dibspack [options...] [step]
+    install/with-dibsignore [options...] [step]
 
 This program is a Perl program and supports flexible __GNU-style__ parameters:
 
@@ -151,7 +151,7 @@ source and destination directories, namely:
   (i.e. the content of envile `DIBS_DIR_SRC`) and the destination to
   sub-directory `app` inside the cache directory (i.e. the second parameter).
 
-- if it takes value `bundle', then the source eventuall defaults to
+- if it takes value `bundle`, then the source eventually defaults to
   sub-directory `app` inside the cache directory (i.e. the content of envile
   `DIBS_DIR_CACHE`) and the destination defaults to `/app`.
 
@@ -165,7 +165,7 @@ popular `.gitignore` file used by {git}[Git].
 This program requires to run Perl inside the container. This should be a
 no-problem in the *build* steps, but might be trickier in the *bundle* steps.
 If this is actually the case, the suggestion is to prepare the copy with
-`install/with-dibspack` during the *build* step, then use
+`install/with-dibsignore` during the *build* step, then use
 `install/simple-copy` (which only relies on POSIX compliant `/bin/sh`) to
 place the artifacts in the right place during the *bundle* step.
 
