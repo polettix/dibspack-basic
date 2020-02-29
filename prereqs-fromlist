@@ -1,0 +1,20 @@
+#!/bin/sh
+
+main() {
+   set -e
+   . "$(dirname "$0")/lib.sh"
+   export_all_enviles
+
+   local os="$1"
+   shift
+   prereqs_for_"$os" "$@"
+}
+
+prereqs_for_alpine() {
+   apk --no-cache update
+   apk --no-cache add "$@"
+}
+
+exec 1>&2
+main "$@"
+exit "$?"
