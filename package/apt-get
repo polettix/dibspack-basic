@@ -1,7 +1,11 @@
 #!/bin/sh
 set -e
-. "$(dirname "$0")/lib.sh"
+. "$(dirname "$0")/../lib.sh"
 export_all_enviles
 
 $SUDO apt-get update
+
+# Cope with "virtual" pacakges from dibspack-basic
+. "$(dirname "$0")/wrapexec.sh"
+
 $SUDO apt-get install -y "$@"
