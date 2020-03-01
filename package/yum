@@ -1,0 +1,9 @@
+#!/bin/sh
+set -e
+. "$(dirname "$0")/../lib.sh"
+export_all_enviles
+
+# Cope with "virtual" pacakges from dibspack-basic
+. "$(dirname "$0")/wrapexec.sh"
+
+$SUDO yum -y install "$@"
