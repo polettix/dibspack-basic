@@ -36,7 +36,7 @@ os_id() { sed -n 's/^ID=//p' /etc/os-release ; }
 is_detect() { [ "${1:-"$DIBSPACK_DETECT"}" = 'xdetect' ] ; }
 
 escape_var_value() {
-   local value=$1
+   local value="$1"
    printf '%s' "'"
    while : ; do
       case "$value" in
