@@ -107,6 +107,7 @@ adjust_vars() {
 parse_opts() {
    local also_groups=''
    local tmp
+   : ${CREATE_HOME:=''}
    while [ "$#" -gt 0 ] ; do
       optname="$1"
       shift
@@ -124,6 +125,9 @@ parse_opts() {
             tmp="$(stat -c '%g' "$1")"
             also_groups="$also_groups $(escape_var_value "$tmp")"
             shift
+            ;;
+         (--create-home|-m)
+            CREATE_HOME=1
             ;;
          (--gid|-G)
             [ "$#" -gt 0 ] || die "no value for $optname"
@@ -242,16 +246,17 @@ escape_var_value() {
 ########################################################################
 
 alpine_create_user() {
-   local args="$(encode_array_sed '-D' '-H' "$USER_NAME")"
-   [ -n "$GROUP_EXISTS" ] && args="$(encode_array_sed '-G' "$GROUP_NAME") $args"
-   [ -n "$HOME_DIR" ] && args="$(encode_array_sed '-h' "$HOME_DIR") $args"
+   local args="$(encode_array_sed '-D' "$USER_NAME")"
+   [ -z "$GROUP_EXISTS" ] || args="$(encode_array_sed '-G' "$GROUP_NAME") $args"
+   [ -z "$HOME_DIR" ]     || args="$(encode_array_sed '-h' "$HOME_DIR") $args"
+   [ -n "$CREATE_HOME" ]  || args="$(encode_array_sed '-H') $args"
    eval "set -- $args"
    adduser "$@"
 }
 
 alpine_create_group() {
    local args="$(encode_array_sed "$1")"
-   [ -n "$2" ] && args="$(encode_array_sed '-g' "$2") $args"
+   [ -z "$2" ] || args="$(encode_array_sed '-g' "$2") $args"
    eval "set -- $args"
    addgroup "$@"
 }
@@ -272,16 +277,21 @@ alpine_add_user_to_group() { adduser "$USER_NAME" "$1" ; }
 ########################################################################
 
 debian_create_user() {
-   local args="$(encode_array_sed '-M' "$USER_NAME")"
-   [ -n "$GROUP_EXISTS" ] && args="$(encode_array_sed '-g' "$GROUP_ID") $args"
-   [ -n "$HOME_DIR" ] && args="$(encode_array_sed '-d' "$HOME_DIR") $args"
+   local args="$(encode_array_sed "$USER_NAME")"
+   [ -z "$GROUP_EXISTS" ] || args="$(encode_array_sed '-g' "$GROUP_ID") $args"
+   [ -z "$HOME_DIR" ]     || args="$(encode_array_sed '-d' "$HOME_DIR") $args"
+   if [ -n "$CREATE_HOME" ] ; then
+      args="$(encode_array_sed '-m') $args"
+   else
+      args="$(encode_array_sed '-M') $args"
+   fi
    eval "set -- $args"
    useradd "$@"
 }
 
 debian_create_group() {
    local args="$(encode_array_sed "$1")"
-   [ -n "$2" ] && args="$(encode_array_sed '-g' "$2") $args"
+   [ -z "$2" ] || args="$(encode_array_sed '-g' "$2") $args"
    eval "set -- $args"
    groupadd "$@"
 }
