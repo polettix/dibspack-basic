@@ -11,6 +11,20 @@ main() {
    adjust_vars 'USER_ID' 'USER_NAME' 'USER_EXISTS' '/etc/passwd'
    [ -n "$USER_NAME" ] || USER_NAME="$(find_newname '' 'user' '/etc/passwd')"
 
+   [ "$USER_ID" = '0' ] || set_all_stuff
+
+   # whatever remained after parsing is what we want to run as $USER_NAME-
+   # Again, re-load array "$@" with relevant data
+   eval "set -- $parsed_remained_args"
+   [ "$#" -gt 0 ] && exec su-exec "$USER_NAME" "$@"
+
+   # this should never be reached actually, unless the only goal was to
+   # create the user and associate them with the group(s)
+   return 0
+
+}
+
+set_all_stuff() {
    # adjust variables for group, it does not necessarily need to eventually
    # exist
    adjust_vars 'GROUP_ID' 'GROUP_NAME' 'GROUP_EXISTS' '/etc/group'
@@ -59,15 +73,6 @@ main() {
       fi
       "${OS}_add_user_to_group" "$GROUP_NAME"
    done
-   
-   # whatever remained after parsing is what we want to run as $USER_NAME-
-   # Again, re-load array "$@" with relevant data
-   eval "set -- $parsed_remained_args"
-   [ "$#" -gt 0 ] && exec su-exec "$USER_NAME" "$@"
-
-   # this should never be reached actually, unless the only goal was to
-   # create the user and associate them with the group(s)
-   return 0
 }
 
 die() {
@@ -78,10 +83,15 @@ die() {
 adjust_vars() {
    local rid="$1"
    local rname="$2"
-   local rexists="$3"
-   local file="$4"
    local id="$(eval "printf '%s' \"\$$rid\"")"
    local name="$(eval "printf '%s' \"\$$rname\"")"
+   if [ "$id" = '0' ] ; then
+      printf >&2 '\n*** WARNING: not remapping user <%s> to user id 0\n\n' "$name"
+      return 0
+   fi
+
+   local rexists="$3"
+   local file="$4"
    eval "$rexists=''"
    if [ -n "$id" ] ; then
       local line="$(grep "^[^:]*:[^:]*:$id:" "$file" || true)"
