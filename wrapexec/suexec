@@ -8,6 +8,7 @@ main() {
    normalize_OS
 
    # adjust variables for user, also make sure it has a name
+   : ${GLOBAL_ADJUST_VARS:=1} # MIGHT be disabled
    adjust_vars 'USER_ID' 'USER_NAME' 'USER_EXISTS' '/etc/passwd'
    [ -n "$USER_NAME" ] || USER_NAME="$(find_newname '' 'user' '/etc/passwd')"
 
@@ -81,11 +82,13 @@ die() {
 }
 
 adjust_vars() {
+   [ "$GLOBAL_ADJUST_VARS" -ne 0 ] || return 0
    local rid="$1"
    local rname="$2"
    local id="$(eval "printf '%s' \"\$$rid\"")"
    local name="$(eval "printf '%s' \"\$$rname\"")"
    if [ "$id" = '0' ] ; then
+      GLOBAL_ADJUST_VARS=0
       printf >&2 '\n*** WARNING: not remapping user <%s> to user id 0\n\n' "$name"
       return 0
    fi
