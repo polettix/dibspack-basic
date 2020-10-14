@@ -12,17 +12,21 @@ main() {
    adjust_vars 'USER_ID' 'USER_NAME' 'USER_EXISTS' '/etc/passwd'
    [ -n "$USER_NAME" ] || USER_NAME="$(find_newname '' 'user' '/etc/passwd')"
 
-   [ "$USER_ID" = '0' ] || set_all_stuff
+   if [ "$USER_ID" = '0' ] ; then
+      eval "set -- $parsed_remained_args"
+      [ "$#" -gt 0 ] && exec "$@"
+   else
+      set_all_stuff
 
-   # whatever remained after parsing is what we want to run as $USER_NAME-
-   # Again, re-load array "$@" with relevant data
-   eval "set -- $parsed_remained_args"
-   [ "$#" -gt 0 ] && exec su-exec "$USER_NAME" "$@"
+      # whatever remained after parsing is what we want to run as $USER_NAME
+      # Again, re-load array "$@" with relevant data
+      eval "set -- $parsed_remained_args"
+      [ "$#" -gt 0 ] && exec su-exec "$USER_NAME" "$@"
+   fi
 
    # this should never be reached actually, unless the only goal was to
    # create the user and associate them with the group(s)
    return 0
-
 }
 
 set_all_stuff() {
