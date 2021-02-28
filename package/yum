@@ -1,11 +1,4 @@
 #!/bin/sh
-exec 1>&2
-
-set -e
-. "$(dirname "$0")/../lib.sh"
-export_all_enviles
-
-# Cope with "virtual" pacakges from dibspack-basic
-. "$(dirname "$0")/wrapexec.sh"
-
-$SUDO yum -y install "$@"
+update_package_database() { :                         ; }
+install_packages()        { $SUDO yum -y install "$@" ; }
+. "$(dirname "$0")/generic.sh"

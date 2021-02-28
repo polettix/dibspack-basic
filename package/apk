@@ -1,13 +1,4 @@
 #!/bin/sh
-exec 1>&2
-
-set -e
-. "$(dirname "$0")/../lib.sh"
-export_all_enviles
-
-$SUDO apk --no-cache update
-
-# Cope with "virtual" pacakges from dibspack-basic
-. "$(dirname "$0")/wrapexec.sh"
-
-$SUDO apk --no-cache add --upgrade "$@"
+update_package_database() { $SUDO apk --no-cache update             ; }
+install_packages()        { $SUDO apk --no-cache add --upgrade "$@" ; }
+. "$(dirname "$0")/generic.sh"

@@ -1,13 +1,4 @@
 #!/bin/sh
-exec 1>&2
-
-set -e
-. "$(dirname "$0")/../lib.sh"
-export_all_enviles
-
-$SUDO apt-get update
-
-# Cope with "virtual" pacakges from dibspack-basic
-. "$(dirname "$0")/wrapexec.sh"
-
-$SUDO apt-get install -y "$@"
+update_package_database() { $SUDO apt-get update          ; }
+install_packages()        { $SUDO apt-get install -y "$@" ; }
+. "$(dirname "$0")/generic.sh"

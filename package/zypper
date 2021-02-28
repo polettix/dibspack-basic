@@ -1,0 +1,4 @@
+#!/bin/sh
+update_package_database() { $SUDO zypper refresh         ; }
+install_packages()        { $SUDO zypper install -y "$@" ; }
+. "$(dirname "$0")/generic.sh"
