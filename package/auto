@@ -1,0 +1,22 @@
+#!/bin/sh
+. /etc/os-release
+packman=''
+case "$ID" in
+   (alpine)
+      packman='apk'
+      ;;
+   (opensuse*)
+      packman='zypper'
+      ;;
+   (debian)
+      packman='apt-get'
+      ;;
+   (centos)
+      packman=yum
+      ;;
+   (*)
+      printf >&2 '%s\n' "unknown OS '$ID'"
+      exit 1
+      ;;
+esac
+exec "$(dirname "$0")/$packman" "$@
