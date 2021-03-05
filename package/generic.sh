@@ -13,12 +13,19 @@ export_all_enviles
 update_package_database
 
 # Cope with "virtual" pacakges from dibspack-basic
+modules_list=''
 while [ $# -gt 0 ] ; do
    case "$1" in
       (--suexec|--dockexec|--profilexec)
          name="${1#--}"
          $SUDO cp "$basedir/wrapexec/$name" /
          $SUDO chmod +x "/$name"
+         shift
+         ;;
+      (-f|--from)
+         [ $# -gt 1 ] || LOGDIE "cannot honor $1"
+         shift
+         modules_list="$modules_list $(encode_array $(cat "$1"))"
          shift
          ;;
       (--)
