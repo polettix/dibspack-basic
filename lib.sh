@@ -70,14 +70,14 @@ encode_array() {
       escape_var_value "$i"
       printf ' \\\n'
    done
-   printf ' \n'
+   printf ' '
 }
 
 encode_array_sed() {
    for i do
       printf %s\\n "$i" | sed "s/'/'\\\\''/g;1s/^/'/;\$s/\$/' \\\\/"
    done
-   echo " "
+   printf ' '
 }
 
 export_envile() {
