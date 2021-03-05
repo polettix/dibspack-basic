@@ -38,5 +38,8 @@ while [ $# -gt 0 ] ; do
    esac
 done
 
+[ $# -eq 0 ] || modules_list="$modules_list $(encode_array "$@")"
+eval "set -- $modules_list"
+
 # This must be already provided in the environment
 install_packages "$@"
