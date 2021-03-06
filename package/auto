@@ -32,5 +32,11 @@ case "$ID" in
 esac
 
 full_packman="$scriptdir/$packman"
-[ "$#" -eq 0 ] || "$full_packman" "$@"
-"$full_packman" -f "$prereqs_dir/prereqs.$packman"
+target_list="$prereqs_dir/prereqs.$packman"
+target_script="$target_list.sh"
+if [ -x "$target_script" ] ; then
+   "$target_script" "$@"
+elif [ "$#" -gt 0 ] then
+   "$full_packman" "$@"
+fi
+[ -r "$target_list" ] && "$full_packman" -f "$prereqs_dir/prereqs.$packman"
