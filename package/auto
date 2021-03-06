@@ -41,4 +41,6 @@ if [ -x "$target_script" ] ; then
 elif [ "$#" -gt 0 ] ; then
    "$full_packman" "$@"
 fi
-[ -r "$target_list" ] && "$full_packman" -f "$prereqs_dir/prereqs.$packman"
+if [ -r "$target_list" ] ; then
+   "$full_packman" -f "$prereqs_dir/prereqs.$packman"
+fi
