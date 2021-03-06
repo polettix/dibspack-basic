@@ -1,4 +1,15 @@
 #!/bin/sh
+
+script="$(readlink -f "$0")"
+scriptdir="$(dirname "$script")"
+basedir="$(dirname "$scriptdir")"
+
+. "$basedir/lib.sh"
+export_all_enviles
+
+prereqs_dir="$DIBS_DIR_SRC"
+[ -z "PREREQS_DIR" ] || prereqs_dir="$prereqs_dir/$PREREQS_DIR"
+
 . /etc/os-release
 packman=''
 case "$ID" in
@@ -19,5 +30,7 @@ case "$ID" in
       exit 1
       ;;
 esac
-export AUTO_PACKAGE="$packman"
-exec "$(dirname "$0")/$packman" 
+
+full_packman="$scriptdir/$packman"
+[ "$#" -eq 0 ] || "$full_packman" "$@"
+"$full_packman" -f "$prereqs_dir/prereqs.$packman"
