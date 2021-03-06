@@ -50,6 +50,11 @@ parse_opts() {
       optname="$1"
       shift
       case "$optname" in
+         (--cache-dir)
+            [ "$#" -gt 0 ] || LOGDIE "no value for option $optname"
+            cache_dir="$DIBS_DIR_CACHE/$1"
+            shift
+            ;;
          (--cpanm-test)
             DIBSPACK_CPANM_TEST=''    # does not set "--notest"
             ;;
