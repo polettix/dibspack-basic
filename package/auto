@@ -1,4 +1,6 @@
 #!/bin/sh
+exec 1>&2
+set -e
 
 script="$(readlink -f "$0")"
 scriptdir="$(dirname "$script")"
