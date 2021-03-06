@@ -12,11 +12,12 @@ case "$ID" in
       packman='apt-get'
       ;;
    (centos)
-      packman=yum
+      packman='yum'
       ;;
    (*)
       printf >&2 '%s\n' "unknown OS '$ID'"
       exit 1
       ;;
 esac
-exec "$(dirname "$0")/$packman" "$@
+export AUTO_PACKAGE="$packman"
+exec "$(dirname "$0")/$packman" 

@@ -5,6 +5,7 @@ set -e
 script="$(readlink -f "$0")"
 scriptdir="$(dirname "$script")"
 basedir="$(dirname "$scriptdir")"
+: ${AUTO_PACKAGE:=""}
 
 . "$basedir/lib.sh"
 export_all_enviles
@@ -25,7 +26,12 @@ while [ $# -gt 0 ] ; do
       (-f|--from)
          [ $# -gt 1 ] || LOGDIE "cannot honor $1"
          shift
-         modules_list="$modules_list $(encode_array $(cat "$1"))"
+         if [ -r "$1" ] ; then
+            modules_list="$modules_list $(encode_array $(cat "$1"))"
+         fi
+         if [ -n "$AUTO_PACKAGE" -a -r "$1.$AUTO_PACKAGE" ] ; then
+            modules_list="$modules_list $(encode_array $(cat "$1.$AUTO_PACKAGE"))"
+         fi
          shift
          ;;
       (--)
