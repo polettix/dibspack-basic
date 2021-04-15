@@ -45,6 +45,7 @@ parse_opts() {
    env_dir="$DIBS_DIR_ENV"
 
    work_dir="${DIBSPACK_WORK_DIR:-"$src_dir"}"
+   : ${DIBSPACK_PLAIN_CARTON:="0"}
    local optname optval
    while [ "$#" -gt 0 ] ; do
       optname="$1"
@@ -75,6 +76,9 @@ parse_opts() {
          (--no-verbose)
             DIBSPACK_VERBOSE=0
             DIBSPACK_CPANM_VERBOSE='--quiet'
+            ;;
+         (--plain-carton)
+            DIBSPACK_PLAIN_CARTON=1
             ;;
          (--save-env)
             [ "$#" -gt 0 ] || LOGDIE "no value for option $optname"
@@ -244,7 +248,8 @@ __build_install_dependencies() {
    [ -e gitpanfile ] && __build_install_dependencies_gitpanm
 
    # proceed with regular stuff
-   if [ -e cpanfile.snapshot ] ; then
+   if [ -e cpanfile.snapshot ] || [ "$DIBSPACK_PLAIN_CARTON" = "1" ]
+   then
       __build_install_dependencies_carton
    else
       # use cpanm, possibly taking array EPAN in consideration
@@ -295,7 +300,8 @@ __build_install_dependencies_carton() {
    local private_carton='vendor/bin/carton'
    [ -x "$private_carton" ] && carton="$private_carton"
 
-   local params='install --deployment'
+   local params='install'
+   [ "$DIBSPACK_PLAIN_CARTON" = "1" ] || params='install --deployment'
    [ -d 'vendor/cache' ] && params="$params --cached"
 
    # if we're recurring, chances are that carton will try to install
