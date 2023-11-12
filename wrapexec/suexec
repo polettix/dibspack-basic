@@ -36,7 +36,7 @@ main() {
 on_to() {
    local user="${2:-""}"
    eval "set -- $1"
-   [ $# -gt 0 ] || return 1
+   [ $# -gt 0 ] || return 0
    if [ -n "$user" ] ; then
       exec su-exec "$user" "$@"
    else
