@@ -4,6 +4,12 @@ main() {
    set -e
    parse_opts "$@"
 
+   # if not root at this point, just move along
+   if [ "$(id -u)" != '0' ] ; then
+      on_to "$parsed_remained_args"
+      return 0 # not sure what's the point but still
+   fi
+
    # check/normalize OS as env variable
    normalize_OS
 
@@ -13,20 +19,31 @@ main() {
    [ -n "$USER_NAME" ] || USER_NAME="$(find_newname '' 'user' '/etc/passwd')"
 
    if [ "$USER_ID" = '0' ] ; then
-      eval "set -- $parsed_remained_args"
-      [ "$#" -gt 0 ] && exec "$@"
+      on_to "$parsed_remained_args"
    else
       set_all_stuff
 
       # whatever remained after parsing is what we want to run as $USER_NAME
       # Again, re-load array "$@" with relevant data
-      eval "set -- $parsed_remained_args"
-      [ "$#" -gt 0 ] && exec su-exec "$USER_NAME" "$@"
+      on_to "$parsed_remained_args" "$USER_NAME"
    fi
 
    # this should never be reached actually, unless the only goal was to
    # create the user and associate them with the group(s)
    return 0
+}
+
+on_to() {
+   local user="${2:-""}"
+   eval "set -- $1"
+   [ $# -gt 0 ] || return 1
+   if [ -n "$user" ] ; then
+      exec su-exec "$user" "$@"
+   else
+      exec "$@"
+   fi
+   # should not be reached
+   exit 1
 }
 
 set_all_stuff() {
